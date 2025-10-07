@@ -1,0 +1,21 @@
+{
+    "statuses": [
+        {
+            "name": "大阪府",
+            "status": "crowded"
+        },
+        {
+            "name": "京都府",
+            "status": "crowded"
+        },
+        {
+            "name": "東京都",
+            "status": "crowded"
+        },        
+        {
+            "name": "愛知県",
+            "status": "crowded"
+        }
+    ]
+}
+    
