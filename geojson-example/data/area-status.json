@@ -7,15 +7,11 @@
         {
             "name": "京都府",
             "status": "crowded"
-        },
+        },       
         {
-            "name": "東京都",
+            "name": "京都市下京区",
             "status": "crowded"
-        },        
-        {
-            "name": "愛知県",
-            "status": "crowded"
-        }
+        }    
     ]
 }
     

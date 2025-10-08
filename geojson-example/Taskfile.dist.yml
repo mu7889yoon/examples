@@ -1,0 +1,8 @@
+version: 3
+
+tasks:
+  serve:
+    aliases:
+      - up        
+    cmds:
+      - python3 -m http.server

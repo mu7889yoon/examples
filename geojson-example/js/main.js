@@ -1,5 +1,8 @@
 const map = L.map('map').setView([35.0116, 135.7681], 12);
 
+geoJsonFilePath = 'data/N03-23_26_230101.geojson'
+geoJsonKey = 'N03_004'
+
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
 }).addTo(map);
@@ -31,8 +34,8 @@ function getStatusClass(status) {
 }
 
 Promise.all([
-    fetch('data/prefectures.geojson').then(response => response.json()),
-    fetch('data/prefectures-status.json').then(response => response.json()),        
+    fetch(geoJsonFilePath).then(response => response.json()),
+    fetch('data/area-status.json').then(response => response.json()),        
 ])
 .then(([geojsonData, statusData]) => {
     const statusMap = {};
@@ -42,16 +45,16 @@ Promise.all([
         };
     });
     
-    geojsonData.features.forEach(feature => {
-        const name = feature.properties.name;
+    geojsonData.features.forEach(area => {
+        const name = area.properties[geoJsonKey];
         if (statusMap[name]) {
-            feature.properties.status = statusMap[name].status;
+            area.properties.status = statusMap[name].status;
         }
     });
 
     const geojsonLayer = L.geoJSON(geojsonData, {            
-            style: function (feature) {                
-                const status = feature.properties.status;
+            style: function (area) {                
+                const status = area.properties.status;                
                 return {
                     fillColor: getStatusColor(status),
                     weight: 2,
@@ -61,8 +64,8 @@ Promise.all([
                     fillOpacity: 0.3
                 };
             },
-            onEachFeature: function (feature, layer) {                
-                const props = feature.properties;
+            onEachFeature: function (area, layer) {                
+                const props = area.properties;
                 const mappedStatus = mapStatus(props.status);
                 const statusClass = getStatusClass(props.status);
                             
@@ -70,7 +73,7 @@ Promise.all([
                 
                 const popupContent = `
                     <div class="popup-content">
-                        <div class="popup-title">${props.name}</div>
+                        <div class="popup-title">${props[geoJsonKey]}</div>
                         <div class="popup-status ${statusClass}">${statusLabel}</div>
                     </div>
                 `;
