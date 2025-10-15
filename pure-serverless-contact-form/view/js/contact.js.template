@@ -1,0 +1,55 @@
+(function () {    
+    var API_BASE = "${API_BASE_URL}"
+
+    var form = document.getElementById('contact-form')
+    if (!form) return
+    form.addEventListener('submit', function (e) {
+        e.preventDefault()
+
+        var data = {
+            name: document.getElementById('name').value,
+            furigana: document.getElementById('furigana').value,
+            postal: (function(){
+                var v = document.getElementById('postal').value 
+                return v && v.trim() !== '' ? v : null
+            })(),
+            address: document.getElementById('address').value,
+            email: document.getElementById('email').value,
+            pet: (function(){
+                var rds = document.querySelectorAll('input[name="pet"]')
+                for (var i = 0; i < rds.length; i++) { 
+                    if (rds[i].checked) return rds[i].value
+                }
+                return null
+            })(),
+            question: (function(){
+                var v = document.getElementById('question').value 
+                return v && v.length ? v : null
+            })(),
+            agree: document.getElementById('agree').checked === true
+        }
+
+        fetch(API_BASE + 'contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(function(res){
+            if (!res.ok) throw new Error('HTTP ' + res.status)
+            return res.json()
+        }).then(function(json){
+            if (json && json.isValid === true) {
+                window.location.href = 'finish.html'
+            } else if (json && json.errors && json.errors.length) {
+                var msg = json.errors.map(function(e){ 
+                    return e.field + ': ' + e.message
+                }).join('\n')
+                alert('入力エラー:\n' + msg)
+            } else {
+                alert('不明な応答です')
+            }
+        }).catch(function(err){
+            alert('送信に失敗しました: ' + err.message)
+        })
+    })
+})()
+

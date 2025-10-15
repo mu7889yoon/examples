@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>問い合わせフォーム</title>
+</head>
+<body>
+    <h1>問い合わせフォーム</h1>
+    <div id="error-messages" style="display: none; color: red; background-color: #ffe6e6; padding: 15px; margin-bottom: 20px; border: 1px solid red; border-radius: 5px;">
+        <strong>入力エラー:</strong>
+        <ul id="error-list" style="margin: 10px 0 0 0; padding-left: 20px;"></ul>
+    </div>
+    <form id="contact-form" method="post">
+        <div>
+            <label for="name">氏名 (*)</label><br>
+            <input type="text" id="name" name="name">
+        </div>
+        
+        <div>
+            <label for="furigana">フリガナ (*)</label><br>
+            <input type="text" id="furigana" name="furigana">
+        </div>
+        
+        <div>
+            <label for="postal">郵便番号</label><br>
+            <input type="text" id="postal" name="postal">
+        </div>
+        
+        <div>
+            <label for="address">住所</label><br>
+            <input type="text" id="address" name="address">
+        </div>
+        
+        <div>
+            <label for="email">メールアドレス (*)</label><br>
+            <input type="email" id="email" name="email">
+        </div>
+        
+        <div>
+            <label>好きなペット (*)</label><br>
+            <input type="radio" id="dog" name="pet" value="dog">
+            <label for="dog">犬</label><br>
+            <input type="radio" id="cat" name="pet" value="cat">
+            <label for="cat">猫</label><br>
+            <input type="radio" id="bird" name="pet" value="bird">
+            <label for="bird">鳥</label><br>            
+        </div>
+        
+        <div>
+            <label for="question">質問</label><br>
+            <textarea id="question" name="question" rows="5" cols="50"></textarea>
+        </div>
+        
+        <div>
+            <input type="checkbox" id="agree" name="agree">
+            <label for="agree">同意する</label>
+        </div>
+        
+        <div>
+            <input type="submit" value="送信">
+        </div>
+    </form>
+    <script src="js/contact.js"></script>
+</body>
+</html>

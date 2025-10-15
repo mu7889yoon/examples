@@ -1,0 +1,3 @@
+node_modules
+.env
+pure-serverless-contact-form/view/js/contact.js

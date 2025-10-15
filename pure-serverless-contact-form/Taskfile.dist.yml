@@ -1,0 +1,43 @@
+version: 3
+
+dotenv:
+  - .env
+
+tasks:
+  init:
+    cmds:
+      - task create-dotenv
+      - task deploy
+      - task replace-api-base
+      - task serve
+
+  check-aws-credentials:
+    cmds:
+      - aws sts get-caller-identity
+
+  deploy:
+    deps:      
+      - check-aws-credentials
+    dir: ./step-functions-contact-form
+    cmds:
+      - npx cdk deploy
+
+  create-dotenv:
+    cmds:
+      - envsubst < .env.template > .env
+
+  replace-api-base:
+    deps:
+      - create-dotenv
+      - check-aws-credentials
+    cmds:
+      - API_BASE_URL=$(aws cloudformation describe-stacks --stack-name StepFunctionsContactFormStack --query 'Stacks[0].Outputs[?OutputKey==`ApiEndpoint`].OutputValue' --output text) &&
+        envsubst < .env.template > .env &&
+        envsubst < view/js/contact.js.template > view/js/contact.js
+
+  serve:
+    aliases:
+      - up        
+    dir: ./view
+    cmds:
+      - python3 -m http.server
