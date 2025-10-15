@@ -2,18 +2,11 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
-import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as sns from 'aws-cdk-lib/aws-sns';
 
 export class StepFunctionsContactFormStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-
-    // SNSトピック（バリデーション成功時の通知）
-    const notifyTopic = new sns.Topic(this, 'ContactFormNotifyTopic', {
-      displayName: 'Contact Form Notifications'
-    });
 
     // ステップ1: JSONataでバリデーションを実行
     const validationState = new sfn.CustomState(this, 'ValidateInput', {
@@ -47,18 +40,7 @@ export class StepFunctionsContactFormStack extends cdk.Stack {
       }
     });
 
-    // ステップ3: SNS通知タスク（バリデーション成功時）
-    const notifyTask = new tasks.SnsPublish(this, 'NotifyValidSubmission', {
-      topic: notifyTopic,
-      message: sfn.TaskInput.fromObject({
-        'default': 'New contact form submission received',
-        'formData.$': '$.input'
-      }),
-      subject: 'Contact Form Submission',
-      resultPath: sfn.JsonPath.DISCARD
-    });
-
-    // ステップ4: 成功レスポンスの生成
+    // ステップ3: 成功レスポンスの生成
     const successResponse = new sfn.Pass(this, 'SuccessResponse', {
       parameters: {
         isValid: true,
@@ -66,7 +48,7 @@ export class StepFunctionsContactFormStack extends cdk.Stack {
       }
     });
 
-    // ステップ5: 失敗レスポンスの生成
+    // ステップ4: 失敗レスポンスの生成
     const failureResponse = new sfn.Pass(this, 'FailureResponse', {
       parameters: {
         'isValid.$': '$.isValid',
@@ -78,7 +60,7 @@ export class StepFunctionsContactFormStack extends cdk.Stack {
     const checkValidation = new sfn.Choice(this, 'CheckValidation')
       .when(
         sfn.Condition.booleanEquals('$.isValid', true),
-        notifyTask.next(successResponse)
+        successResponse
       )
       .otherwise(failureResponse);
 
@@ -180,11 +162,6 @@ export class StepFunctionsContactFormStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'StateMachineArn', {
       value: stateMachine.stateMachineArn,
       description: 'Step Functions state machine ARN'
-    });
-
-    new cdk.CfnOutput(this, 'SnsTopicArn', {
-      value: notifyTopic.topicArn,
-      description: 'SNS topic ARN for notifications'
     });
   }
 }
