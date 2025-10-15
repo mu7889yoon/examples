@@ -1,0 +1,74 @@
+{
+  "Comment": "Contact form validation using JSONata",
+  "StartAt": "ValidateInput",
+  "States": {
+    "ValidateInput": {
+      "Type": "Pass",
+      "QueryLanguage": "JSONata",
+      "Comment": "Validate form input using JSONata",
+      "Output": {
+        "input": "{% $states.input %}",
+        "nameError": "{% $states.input.name = null or $trim($string($states.input.name)) = \"\" ? {\"field\":\"name\",\"message\":\"必須\"} %}",
+        "furiganaError": "{% $states.input.furigana = null or $trim($string($states.input.furigana)) = \"\" ? {\"field\":\"furigana\",\"message\":\"必須\"} : $match($string($states.input.furigana), /^[ァ-ヶー]+$/) = null ? {\"field\":\"furigana\",\"message\":\"全角カタカナ\"} %}",
+        "emailError": "{% $states.input.email = null or $trim($string($states.input.email)) = \"\" ? {\"field\":\"email\",\"message\":\"必須\"} : $match($string($states.input.email), /^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/) = null ? {\"field\":\"email\",\"message\":\"形式不正\"} %}",
+        "petError": "{% $states.input.pet = null or not($states.input.pet in [\"dog\",\"cat\",\"bird\"]) ? {\"field\":\"pet\",\"message\":\"必須\"} %}",
+        "agreeError": "{% $states.input.agree != true ? {\"field\":\"agree\",\"message\":\"同意必須\"} %}",
+        "postalError": "{% $states.input.postal != null and $match($string($states.input.postal), /^\\d{7}$/) = null ? {\"field\":\"postal\",\"message\":\"7桁数字\"} %}",
+        "questionError": "{% $states.input.question != null and $length($string($states.input.question)) > 500 ? {\"field\":\"question\",\"message\":\"500文字以内\"} %}"
+      },
+      "Next": "BuildErrorArray"
+    },
+    "BuildErrorArray": {
+      "Type": "Pass",
+      "QueryLanguage": "JSONata",
+      "Output": {
+        "input": "{% $states.input.input %}",
+        "errors": "{% [$states.input.nameError, $states.input.furiganaError, $states.input.emailError, $states.input.petError, $states.input.agreeError, $states.input.postalError, $states.input.questionError][$ != null] %}",
+        "isValid": "{% $count([$states.input.nameError, $states.input.furiganaError, $states.input.emailError, $states.input.petError, $states.input.agreeError, $states.input.postalError, $states.input.questionError][$ != null]) = 0 %}"
+      },
+      "Next": "CheckValidation"
+    },
+    "CheckValidation": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.isValid",
+          "BooleanEquals": true,
+          "Next": "NotifyValidSubmission"
+        }
+      ],
+      "Default": "FailureResponse"
+    },
+    "NotifyValidSubmission": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn": "${SNS_TOPIC_ARN}",
+        "Message": {
+          "default": "New contact form submission received",
+          "formData.$": "$.input"
+        },
+        "Subject": "Contact Form Submission"
+      },
+      "ResultPath": null,
+      "Next": "SuccessResponse"
+    },
+    "SuccessResponse": {
+      "Type": "Pass",
+      "Parameters": {
+        "isValid": true,
+        "message": "お問い合わせを受け付けました"
+      },
+      "End": true
+    },
+    "FailureResponse": {
+      "Type": "Pass",
+      "Parameters": {
+        "isValid.$": "$.isValid",
+        "errors.$": "$.errors"
+      },
+      "End": true
+    }
+  },
+  "TimeoutSeconds": 30
+}
