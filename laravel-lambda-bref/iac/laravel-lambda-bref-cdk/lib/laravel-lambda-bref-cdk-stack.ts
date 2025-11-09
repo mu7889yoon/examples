@@ -6,6 +6,8 @@ import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2'
 import * as apigatewayv2integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations'
 import * as bref from '@bref.sh/constructs'
+import * as custom_resources from 'aws-cdk-lib/custom-resources'
+import * as iam from 'aws-cdk-lib/aws-iam'
 import path from 'path'
 
 export class LaravelLambdaBrefCdkStack extends cdk.Stack {
@@ -96,6 +98,37 @@ export class LaravelLambdaBrefCdkStack extends cdk.Stack {
         'LaravelServeIntegration',
         laravelServeFunction,
       ),      
+    })
+
+    new custom_resources.AwsCustomResource(this, 'ArtisanMigrateCustomResource', {
+      onCreate: {
+        service: 'lambda',
+        action: 'invoke',
+        parameters: {
+          FunctionName: artisanFunction.functionName,
+          CliBinaryFormat: 'raw-in-base64-out',
+          Payload: JSON.stringify('migrate --force'),
+        },
+        physicalResourceId: custom_resources.PhysicalResourceId.of(artisanFunction.functionName),
+      },
+      onUpdate: {
+        service: 'lambda',
+        action: 'invoke',
+        parameters: {
+          FunctionName: artisanFunction.functionName,
+          CliBinaryFormat: 'raw-in-base64-out',
+          Payload: JSON.stringify('migrate --force'),
+        },
+        physicalResourceId: custom_resources.PhysicalResourceId.of(artisanFunction.functionName),
+      },
+      policy: custom_resources.AwsCustomResourcePolicy.fromStatements(
+        [
+          new iam.PolicyStatement({
+            actions: ['lambda:InvokeFunction'],
+            resources: [artisanFunction.functionArn],
+          }),
+        ],
+      ),
     })
 
     new cdk.CfnOutput(this, 'LaravelLambdaBrefApiEndpointUrl', {
