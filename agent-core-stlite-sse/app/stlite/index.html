@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>Stlite app</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@stlite/browser@0.90.0/build/stlite.css"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">    
+import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.90.0/build/stlite.js"
+mount(
+  {
+    requirements: ["requests","asyncio"],
+    entrypoint: "streamlit_app.py",
+    files: {
+      "streamlit_app.py": `
+import streamlit as st
+import json
+import uuid
+import requests
+import time
+import asyncio
+
+API_GATEWAY_URL = "https://enak9vxcnj.execute-api.ap-northeast-1.amazonaws.com/prod/"
+
+session_id = str(int(time.time())) + "_" + str(uuid.uuid4()).replace("-", "")
+
+st.set_page_config(
+    page_title="stlite + agent-core",
+)
+
+async def streaming(response):    
+    for line in response.iter_lines(chunk_size=10):
+        if not line:
+            continue
+
+        line = line.decode("utf-8")
+        
+        if line.startswith("data:"):
+            line = line[5:].strip()
+
+        try:
+            data = json.loads(line)
+        except Exception:            
+            yield line
+            continue
+
+        yield (
+            data.get("event", {})
+            .get("contentBlockDelta", {})
+            .get("delta", {})
+            .get("text", "")
+        )
+        await asyncio.sleep(0.05)
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+def invoke_agent_core(prompt: str):
+    try:
+        response = requests.post(
+            f"{API_GATEWAY_URL}agent-core-invoke",
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "text/event-stream",
+            },
+            data=json.dumps({"prompt": prompt}),
+            stream=True,
+        )
+        response.raise_for_status()
+        return streaming(response)
+
+    except Exception as e:
+        error_message = str(e)
+
+        def error_stream():
+            yield f"エラーが発生しました: {error_message}"
+
+        return error_stream()
+
+st.title("stlite + agent-core")
+
+with st.sidebar:
+    if st.button("会話履歴をクリア"):
+        st.session_state.messages = []
+        st.rerun()
+
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+if prompt := st.chat_input("メッセージを入力してください"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    with st.chat_message("assistant"):
+        with st.spinner("考え中..."):
+            response_stream = invoke_agent_core(prompt)            
+            response = st.write_stream(response_stream)
+
+    st.session_state.messages.append({"role": "assistant", "content": response})
+`,
+    },
+  },
+  document.getElementById("root")
+)
+    </script>
+  </body>  
+</html>
