@@ -15,8 +15,9 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module">    
+    <script type="module">
 import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.90.0/build/stlite.js"
+const origin = window.location.origin;
 mount(
   {
     requirements: ["requests","asyncio"],
@@ -30,7 +31,7 @@ import requests
 import time
 import asyncio
 
-API_GATEWAY_URL = "https://enak9vxcnj.execute-api.ap-northeast-1.amazonaws.com/prod/"
+ORIGIN = "${origin}"
 
 session_id = str(int(time.time())) + "_" + str(uuid.uuid4()).replace("-", "")
 
@@ -68,7 +69,7 @@ if "messages" not in st.session_state:
 def invoke_agent_core(prompt: str):
     try:
         response = requests.post(
-            f"{API_GATEWAY_URL}agent-core-invoke",
+            f"{ORIGIN}/agent-core-invoke",
             headers={
                 "Content-Type": "application/json",
                 "Accept": "text/event-stream",

@@ -33,7 +33,17 @@ export class FrontendConstruct extends Construct {
                             cloudfront.AccessLevel.LIST,
                         ],
                     },
-                ),                
+                ),
+            },
+            additionalBehaviors: {
+                '/agent-core-invoke': {
+                    origin: new cloudfrontOrigins.RestApiOrigin(
+                        props.apiGateway,                        
+                    ),
+                    allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+                    cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+                    originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+                },
             },
             defaultRootObject: 'index.html',
         })
