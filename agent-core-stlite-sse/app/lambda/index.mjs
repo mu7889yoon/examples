@@ -1,5 +1,4 @@
 import { pipeline } from 'node:stream/promises'
-import { pipeline as pipelineAsync, Readable, Writable } from 'stream'
 import { BedrockAgentCoreClient, InvokeAgentRuntimeCommand } from '@aws-sdk/client-bedrock-agentcore'
 
 export const handler = awslambda.streamifyResponse(async (event, responseStream, _context) => {
