@@ -21,9 +21,9 @@ const origin = window.location.origin;
 mount(
   {
     requirements: ["requests","asyncio"],
-    entrypoint: "streamlit_app.py",
+    entrypoint: "stlite.py",
     files: {
-      "streamlit_app.py": `
+      "stlite.py": `
 import streamlit as st
 import json
 import uuid
@@ -66,6 +66,10 @@ async def streaming(response):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+if "pending_prompt" not in st.session_state:
+    st.session_state.pending_prompt = None
+
+
 def invoke_agent_core(prompt: str):
     try:
         response = requests.post(
@@ -99,17 +103,22 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("メッセージを入力してください"):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
+if st.session_state.pending_prompt:
+    pending = st.session_state.pending_prompt
     with st.chat_message("assistant"):
         with st.spinner("考え中..."):
-            response_stream = invoke_agent_core(prompt)            
+            await asyncio.sleep(0.01)
+            response_stream = invoke_agent_core(pending)
             response = st.write_stream(response_stream)
 
     st.session_state.messages.append({"role": "assistant", "content": response})
+    st.session_state.pending_prompt = None
+    st.rerun()
+
+if prompt := st.chat_input("メッセージを入力してください"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.pending_prompt = prompt
+    st.rerun()
 `,
     },
   },

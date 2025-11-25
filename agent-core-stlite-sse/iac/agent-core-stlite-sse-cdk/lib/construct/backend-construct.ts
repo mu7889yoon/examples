@@ -1,5 +1,5 @@
 import { Construct } from 'constructs'
-import { LAMBDA_ROOT, AWS_REGION, BEDROCK_MODEL_ID } from '../agent-core-stlite-ses-const'
+import { LAMBDA_ROOT } from '../agent-core-stlite-ses-const'
 import * as agentCore from '@aws-cdk/aws-bedrock-agentcore-alpha'
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
@@ -8,7 +8,7 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway'
 import * as cdk from 'aws-cdk-lib/core'
 
 interface BackendConstructProps {
-    weatherAgentCoreRuntime: agentCore.Runtime    
+   agentCoreRuntime: agentCore.Runtime
 }
 
 export class BackendConstruct extends Construct {
@@ -22,9 +22,9 @@ export class BackendConstruct extends Construct {
             architecture: lambda.Architecture.ARM_64,
             code: lambda.Code.fromAsset(LAMBDA_ROOT),
             handler: 'index.handler',
-            timeout: cdk.Duration.seconds(300),
+            timeout: cdk.Duration.seconds(900),
             environment: {
-                AGENT_CORE_RUNTIME: props.weatherAgentCoreRuntime.agentRuntimeArn,                                
+                AGENT_CORE_RUNTIME: props.agentCoreRuntime.agentRuntimeArn,                                
             },
         })
         proxyLambda.addToRolePolicy(

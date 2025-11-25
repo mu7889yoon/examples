@@ -6,7 +6,7 @@ import { WEATHER_AGENT_CORE_ROOT, AWS_REGION, BEDROCK_MODEL_ID } from '../agent-
 import * as agentCore from '@aws-cdk/aws-bedrock-agentcore-alpha'
 
 export class AgentCoreConstruct extends Construct {
-    public readonly weatherAgentRuntime: agentCore.Runtime
+    public readonly agentCoreRuntime: agentCore.Runtime
 
     constructor(scope: Construct, id: string) {
         super(scope, id)
@@ -31,6 +31,6 @@ export class AgentCoreConstruct extends Construct {
             })
         )
 
-        this.weatherAgentRuntime = weatherAgentRuntime
+        this.agentCoreRuntime = weatherAgentRuntime
     }
 }

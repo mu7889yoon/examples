@@ -12,7 +12,7 @@ export class AgentCoreStliteSseCdkStack extends cdk.Stack {
 
 
     const backendConstruct = new BackendConstruct(this, 'BackendConstruct', {
-      weatherAgentCoreRuntime: agentCoreConstruct.weatherAgentRuntime
+      agentCoreRuntime: agentCoreConstruct.agentCoreRuntime
     })
 
     new FrontendConstruct(this, 'FrontendConstruct', {
