@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@aws-cdk/aws-bedrock-agentcore-alpha": "^2.227.0-alpha.0",
-    "aws-cdk-lib": "^2.227.0",
+    "aws-cdk-lib": "^2.230.0",
     "cdk": "file:lates@aws-cdk/aws-bedrock-agentcore-alpha",
     "constructs": "^10.0.0"
   }

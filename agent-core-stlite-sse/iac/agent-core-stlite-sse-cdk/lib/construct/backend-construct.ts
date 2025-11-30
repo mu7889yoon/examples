@@ -50,17 +50,12 @@ export class BackendConstruct extends Construct {
             },
         })
 
-        const proxyLambdaIntegration = new apigateway.LambdaIntegration(proxyLambda)
-        const apiGatewayMethod = apiGatewayResource.addMethod('POST', proxyLambdaIntegration, {
-            authorizationType: apigateway.AuthorizationType.NONE,
+        const proxyLambdaIntegration = new apigateway.LambdaIntegration(proxyLambda, {
+            responseTransferMode: apigateway.ResponseTransferMode.STREAM
         })
-        const cfnApiGatewayMethod = apiGatewayMethod.node.defaultChild as apigateway.CfnMethod
-
-        const region = cdk.Stack.of(this).region
-        const streamingUri = `arn:aws:apigateway:${region}:lambda:path/2021-11-15/functions/${proxyLambda.functionArn}/response-streaming-invocations`
-
-        cfnApiGatewayMethod.addPropertyOverride('Integration.Uri', streamingUri)
-        cfnApiGatewayMethod.addPropertyOverride('Integration.ResponseTransferMode', 'STREAM')
+        apiGatewayResource.addMethod('POST', proxyLambdaIntegration, {
+            authorizationType: apigateway.AuthorizationType.NONE,
+        })                
 
         this.apiGateway = apiGateway
     }
