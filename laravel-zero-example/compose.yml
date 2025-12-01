@@ -1,0 +1,5 @@
+services:
+  laravel-zero:
+    build: ./docker
+    volumes:
+      - ./:/app
