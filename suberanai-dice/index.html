@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カスタムサイコロローラー</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- 3D Canvas Container -->
+        <div id="canvas-container"></div>
+        
+        <!-- UI Controls -->
+        <div id="controls">
+
+            
+            <button id="roll-btn" class="primary-btn">投げる</button>
+            <button id="settings-btn" class="secondary-btn">設定</button>
+        </div>
+        
+        <!-- Result Display -->
+        <div id="result-display" class="hidden">
+            <div id="result-content">
+                <h2>結果</h2>
+                <div id="result-value"></div>
+                <button id="roll-again-btn" class="primary-btn">もう一度投げる</button>
+            </div>
+        </div>
+        
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>面の値を設定</h2>
+                    <button id="close-settings" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="face-inputs-container"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="save-settings" class="primary-btn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Three.js and Cannon.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    
+    <!-- Application Scripts -->
+    <script src="js/settings.js"></script>
+    <script src="js/scene.js"></script>
+    <script src="js/dice.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
