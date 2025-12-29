@@ -211,13 +211,23 @@ export class EcsManagedInstanceHybridCdkStack extends cdk.Stack {
       defaultTargetGroups: [targetGroup],
     });
 
+    // ECS Service with Hybrid Capacity Provider Strategy
+    // Requirements: 1.1, 1.3, 3.2, 3.3
     const service = new ecs.FargateService(this, 'VllmService', {
       cluster,
       taskDefinition,
-      desiredCount: 1,
+      desiredCount: 2,  // 2タスクを維持 (Requirements: 1.1, 3.3)
       capacityProviderStrategies: [
         {
+          // On-Demand: base=1で最低1タスクを保証 (Requirements: 1.3, 3.2)
+          capacityProvider: miOnDemandCapacityProvider.capacityProviderName,
+          base: 1,
+          weight: 1,
+        },
+        {
+          // Spot: base=0, 追加タスクはweight比率で配分 (Requirements: 1.3, 3.2)
           capacityProvider: miSpotCapacityProvider.capacityProviderName,
+          base: 0,
           weight: 1,
         },
       ],
