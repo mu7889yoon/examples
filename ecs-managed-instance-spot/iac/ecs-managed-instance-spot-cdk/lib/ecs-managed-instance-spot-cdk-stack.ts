@@ -111,14 +111,19 @@ export class EcsManagedInstanceSpotCdkStack extends cdk.Stack {
         acceleratorTypes: [ec2.AcceleratorType.GPU],
         acceleratorManufacturers: [ec2.AcceleratorManufacturer.NVIDIA],
         acceleratorCountMin: 1,
-        acceleratorCountMax: 1,
+        acceleratorCountMax: 2,
         excludedInstanceTypes: [
           'g4*',
         ]
       },      
     });
 
-
+    const cfnCapacityProvider = miCapacityProvider.node.defaultChild as ecs.CfnCapacityProvider;
+    cfnCapacityProvider.addPropertyOverride(
+      'ManagedInstancesProvider.InstanceLaunchTemplate.CapacityOptionType',
+      'SPOT'
+    );
+    cluster.addManagedInstancesCapacityProvider(miCapacityProvider);
 
     const taskDefinition = new ecs.TaskDefinition(this, 'VllmTaskDefinition', {
       compatibility: ecs.Compatibility.MANAGED_INSTANCES,
