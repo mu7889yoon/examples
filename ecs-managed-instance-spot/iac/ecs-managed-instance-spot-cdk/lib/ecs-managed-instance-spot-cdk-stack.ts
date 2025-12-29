@@ -18,9 +18,6 @@ export class EcsManagedInstanceSpotCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // ============================================================
-    // VPC and Network Configuration
-    // ============================================================
     const vpc = new ec2.Vpc(this, 'VllmVpc', {
       maxAzs: 2,
       natGateways: 1,
@@ -38,35 +35,24 @@ export class EcsManagedInstanceSpotCdkStack extends cdk.Stack {
       ],
     });
 
-    // ============================================================
-    // Security Groups
-    // ============================================================
     const albSecurityGroup = new ec2.SecurityGroup(this, 'AlbSecurityGroup', {
       vpc,
-      description: 'Security group for ALB',
       allowAllOutbound: true,
     });
     albSecurityGroup.addIngressRule(
       ec2.Peer.anyIpv4(),
       ec2.Port.tcp(80),
-      'Allow HTTP traffic'
     );
 
     const ecsSecurityGroup = new ec2.SecurityGroup(this, 'EcsSecurityGroup', {
       vpc,
-      description: 'Security group for ECS instances',
       allowAllOutbound: true,
     });
     ecsSecurityGroup.addIngressRule(
       albSecurityGroup,
       ec2.Port.tcp(8000),
-      'Allow traffic from ALB on port 8000'
     );
 
-
-    // ============================================================
-    // IAM Roles
-    // ============================================================
     // ECS Instance Role
     const instanceRole = new iam.Role(this, 'EcsInstanceRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
@@ -109,19 +95,10 @@ export class EcsManagedInstanceSpotCdkStack extends cdk.Stack {
       resources: [instanceRole.roleArn],
     }));
 
-    // ============================================================
-    // ECS Cluster
-    // ============================================================
-    const cluster = new ecs.Cluster(this, 'VllmCluster', {
-      vpc,
-      clusterName: 'vllm-spot-cluster',
-    });
+    const cluster = new ecs.Cluster(this, 'VllmCluster', { vpc });
 
-    // ============================================================
-    // Managed Instances Capacity Provider with Spot
-    // ============================================================
     const miCapacityProvider = new ecs.ManagedInstancesCapacityProvider(this, 'MiSpotCapacityProvider', {
-      capacityProviderName: 'vllm-spot-mi-cp',
+      capacityProviderName: 'vllm-spot-cp',
       ec2InstanceProfile: instanceProfile,
       infrastructureRole,
       securityGroups: [ecsSecurityGroup],
@@ -132,22 +109,19 @@ export class EcsManagedInstanceSpotCdkStack extends cdk.Stack {
         acceleratorTypes: [ec2.AcceleratorType.GPU],
         acceleratorManufacturers: [ec2.AcceleratorManufacturer.NVIDIA],
         acceleratorCountMin: 1,
-      },
+        excludedInstanceTypes: [
+          'g4*',
+        ]
+      },      
     });
 
-    // Use escape hatch to set CapacityOptionType to SPOT (not supported in L2 yet)
     const cfnCapacityProvider = miCapacityProvider.node.defaultChild as ecs.CfnCapacityProvider;
     cfnCapacityProvider.addPropertyOverride(
       'ManagedInstancesProvider.InstanceLaunchTemplate.CapacityOptionType',
       'SPOT'
     );
-
     cluster.addManagedInstancesCapacityProvider(miCapacityProvider);
 
-
-    // ============================================================
-    // ECS Task Definition
-    // ============================================================
     const taskDefinition = new ecs.TaskDefinition(this, 'VllmTaskDefinition', {
       compatibility: ecs.Compatibility.MANAGED_INSTANCES,
       cpu: '4096',
@@ -158,16 +132,13 @@ export class EcsManagedInstanceSpotCdkStack extends cdk.Stack {
 
     // CloudWatch Log Group
     const logGroup = new logs.LogGroup(this, 'VllmLogGroup', {
-      logGroupName: '/ecs/vllm-inference',
-      retention: logs.RetentionDays.ONE_WEEK,
+      retention: logs.RetentionDays.ONE_DAY,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
     // vLLM Container
     const container = taskDefinition.addContainer('vllm', {
       image: ecs.ContainerImage.fromRegistry('vllm/vllm-openai:latest'),
-      memoryLimitMiB: 8192,
-      cpu: 2048,
       gpuCount: 1,
       environment: {
         MODEL_NAME: 'Qwen/Qwen3-4B',
@@ -208,11 +179,12 @@ export class EcsManagedInstanceSpotCdkStack extends cdk.Stack {
       targetType: elbv2.TargetType.IP,
       healthCheck: {
         path: '/health',
-        interval: cdk.Duration.seconds(30),
+        interval: cdk.Duration.seconds(60),
         timeout: cdk.Duration.seconds(10),
         healthyThresholdCount: 2,
-        unhealthyThresholdCount: 3,
+        unhealthyThresholdCount: 5,
       },
+      deregistrationDelay: cdk.Duration.minutes(1),
     });
 
     alb.addListener('HttpListener', {
@@ -220,10 +192,6 @@ export class EcsManagedInstanceSpotCdkStack extends cdk.Stack {
       defaultTargetGroups: [targetGroup],
     });
 
-
-    // ============================================================
-    // ECS Service
-    // ============================================================
     const service = new ecs.FargateService(this, 'VllmService', {
       cluster,
       taskDefinition,
@@ -238,21 +206,16 @@ export class EcsManagedInstanceSpotCdkStack extends cdk.Stack {
 
     service.attachToApplicationTargetGroup(targetGroup);
 
-    // ============================================================
-    // S3 Bucket for Frontend
-    // ============================================================
     const frontendBucket = new s3.Bucket(this, 'FrontendBucket', {
-      bucketName: `vllm-frontend-${this.account}-${this.region}`,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
-    // ============================================================
-    // CloudFront Distribution with OAC
-    // ============================================================
-    const oac = new cloudfront.S3OriginAccessControl(this, 'FrontendOAC', {
-      // Let CloudFormation generate a unique name to avoid conflicts
+    const oac = new cloudfront.S3OriginAccessControl(this, 'FrontendOAC');
+
+    const albOrigin = new origins.HttpOrigin(alb.loadBalancerDnsName, {
+      protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
     });
 
     const distribution = new cloudfront.Distribution(this, 'FrontendDistribution', {
@@ -263,12 +226,18 @@ export class EcsManagedInstanceSpotCdkStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
       },
+      additionalBehaviors: {
+        '/v1/*': {
+          origin: albOrigin,
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
+        },
+      },
       defaultRootObject: 'index.html',
     });
 
-    // ============================================================
-    // Deploy Frontend to S3
-    // ============================================================
     new s3deploy.BucketDeployment(this, 'DeployFrontend', {
       sources: [s3deploy.Source.asset(path.join(__dirname, '../../../src/frontend'))],
       destinationBucket: frontendBucket,
@@ -276,9 +245,6 @@ export class EcsManagedInstanceSpotCdkStack extends cdk.Stack {
       distributionPaths: ['/*'],
     });
 
-    // ============================================================
-    // Outputs
-    // ============================================================
     this.albDnsName = new cdk.CfnOutput(this, 'AlbDnsName', {
       value: alb.loadBalancerDnsName,
       description: 'ALB DNS Name for vLLM API',
