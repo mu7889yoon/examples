@@ -97,33 +97,36 @@ export class EcsManagedInstanceHybridCdkStack extends cdk.Stack {
 
     const cluster = new ecs.Cluster(this, 'VllmCluster', { vpc });
 
-    const miCapacityProvider = new ecs.ManagedInstancesCapacityProvider(this, 'MiSpotCapacityProvider', {
+    // 共通のGPUインスタンス要件を定義（On-DemandとSpot両方で使用）
+    // Requirements: 1.4, 1.5, 3.4
+    const gpuInstanceRequirements: ec2.InstanceRequirementsConfig = {
+      vCpuCountMin: 4,
+      vCpuCountMax: 8,
+      memoryMin: cdk.Size.gibibytes(16),
+      memoryMax: cdk.Size.gibibytes(32),
+      acceleratorTypes: [ec2.AcceleratorType.GPU],
+      acceleratorManufacturers: [ec2.AcceleratorManufacturer.NVIDIA],
+      acceleratorCountMin: 1,
+      acceleratorCountMax: 2,
+      excludedInstanceTypes: ['g4*'],
+    };
+
+    // Spot Capacity Provider (既存)
+    const miSpotCapacityProvider = new ecs.ManagedInstancesCapacityProvider(this, 'MiSpotCapacityProvider', {
       capacityProviderName: 'vllm-spot-cp2',
       ec2InstanceProfile: instanceProfile,
       infrastructureRole,
       securityGroups: [ecsSecurityGroup],
       subnets: vpc.selectSubnets({ subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }).subnets,
-      instanceRequirements: {
-        vCpuCountMin: 4,
-        vCpuCountMax: 8,
-        memoryMin: cdk.Size.gibibytes(16),
-        memoryMax: cdk.Size.gibibytes(32),
-        acceleratorTypes: [ec2.AcceleratorType.GPU],
-        acceleratorManufacturers: [ec2.AcceleratorManufacturer.NVIDIA],
-        acceleratorCountMin: 1,
-        acceleratorCountMax: 2,
-        excludedInstanceTypes: [
-          'g4*',
-        ]
-      },      
+      instanceRequirements: gpuInstanceRequirements,
     });
 
-    const cfnCapacityProvider = miCapacityProvider.node.defaultChild as ecs.CfnCapacityProvider;
-    cfnCapacityProvider.addPropertyOverride(
+    const cfnSpotCapacityProvider = miSpotCapacityProvider.node.defaultChild as ecs.CfnCapacityProvider;
+    cfnSpotCapacityProvider.addPropertyOverride(
       'ManagedInstancesProvider.InstanceLaunchTemplate.CapacityOptionType',
       'SPOT'
     );
-    cluster.addManagedInstancesCapacityProvider(miCapacityProvider);
+    cluster.addManagedInstancesCapacityProvider(miSpotCapacityProvider);
 
     const taskDefinition = new ecs.TaskDefinition(this, 'VllmTaskDefinition', {
       compatibility: ecs.Compatibility.MANAGED_INSTANCES,
@@ -201,7 +204,7 @@ export class EcsManagedInstanceHybridCdkStack extends cdk.Stack {
       desiredCount: 1,
       capacityProviderStrategies: [
         {
-          capacityProvider: miCapacityProvider.capacityProviderName,
+          capacityProvider: miSpotCapacityProvider.capacityProviderName,
           weight: 1,
         },
       ],
