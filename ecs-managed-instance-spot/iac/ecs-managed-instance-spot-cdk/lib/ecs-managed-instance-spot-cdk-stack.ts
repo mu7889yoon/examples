@@ -105,22 +105,20 @@ export class EcsManagedInstanceSpotCdkStack extends cdk.Stack {
       subnets: vpc.selectSubnets({ subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }).subnets,
       instanceRequirements: {
         vCpuCountMin: 4,
+        vCpuCountMax: 8,
         memoryMin: cdk.Size.gibibytes(16),
+        memoryMax: cdk.Size.gibibytes(32),
         acceleratorTypes: [ec2.AcceleratorType.GPU],
         acceleratorManufacturers: [ec2.AcceleratorManufacturer.NVIDIA],
         acceleratorCountMin: 1,
+        acceleratorCountMax: 1,
         excludedInstanceTypes: [
           'g4*',
         ]
       },      
     });
 
-    const cfnCapacityProvider = miCapacityProvider.node.defaultChild as ecs.CfnCapacityProvider;
-    cfnCapacityProvider.addPropertyOverride(
-      'ManagedInstancesProvider.InstanceLaunchTemplate.CapacityOptionType',
-      'SPOT'
-    );
-    cluster.addManagedInstancesCapacityProvider(miCapacityProvider);
+
 
     const taskDefinition = new ecs.TaskDefinition(this, 'VllmTaskDefinition', {
       compatibility: ecs.Compatibility.MANAGED_INSTANCES,

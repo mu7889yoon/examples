@@ -1,71 +1,230 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>vLLM Spot Inference Demo</title>
-    
-    <!-- 環境設定 -->
-    <script src="./config.js"></script>
-    
-    <!-- stlite CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.68.1/build/stlite.js"></script>
-    
-    <style>
-        html, body, #root {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-        
-        /* ローディング表示 */
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: #666;
-        }
-        
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 16px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/browser@0.90.0/build/stlite.css" />
 </head>
+
 <body>
-    <div id="root">
-        <div class="loading">
-            <div class="loading-spinner"></div>
-            <span>アプリケーションを読み込み中...</span>
-        </div>
-    </div>
+    <div id="root"></div>
+    <script type="module">
+        import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@0.90.0/build/stlite.js"
+
+        // API Endpoint - CloudFront経由で同一オリジン（/v1パスはそのままALBに転送）
+        const origin = window.location.origin;
+        const API_ENDPOINT = origin;
+
+        mount(
+            {
+                requirements: ["requests", "asyncio"],
+                entrypoint: "app.py",
+                files: {
+                    "app.py": `
+import streamlit as st
+import json
+import requests
+import time
+import asyncio
+import random
+
+# ============================================
+# Configuration
+# ============================================
+
+API_ENDPOINT = "${API_ENDPOINT}"
+MODEL_NAME = "Qwen/Qwen3-4B"
+MAX_TOKENS = 512
+DELAY_SECONDS = 2
+
+# 事前定義されたプロンプト配列 (Requirement 4.1)
+PROMPTS = [
+    "日本の首都はどこですか？",
+    "プログラミングを学ぶコツを教えてください",
+    "健康的な朝食のレシピを提案してください",
+    "AIの未来について簡潔に説明してください",
+    "効率的な時間管理の方法を3つ挙げてください",
+    "環境問題について一言で説明してください",
+    "おすすめの本を1冊紹介してください",
+    "ストレス解消法を教えてください",
+    "新しい趣味を始めるならおすすめは？",
+    "今日の天気に合う服装を提案してください",
+]
+
+# ============================================
+# Session State Initialization
+# ============================================
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+if "is_running" not in st.session_state:
+    st.session_state.is_running = False
+
+if "last_prompt" not in st.session_state:
+    st.session_state.last_prompt = None
+
+if "pending_inference" not in st.session_state:
+    st.session_state.pending_inference = False
+
+# ============================================
+# Helper Functions
+# ============================================
+
+def select_random_prompt(prompts, last_prompt):
+    """連続重複を回避してランダムにプロンプトを選択"""
+    if len(prompts) == 0:
+        return None
+    if len(prompts) == 1:
+        return prompts[0]
+    available = [p for p in prompts if p != last_prompt]
+    return random.choice(available)
+
+
+def call_vllm_api(prompt):
+    """vLLM OpenAI互換APIを呼び出し（非ストリーミング）"""
+    try:
+        start_time = time.time()
+        response = requests.post(
+            f"{API_ENDPOINT}/v1/chat/completions",
+            headers={"Content-Type": "application/json"},
+            json={
+                "model": MODEL_NAME,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": MAX_TOKENS,
+            },
+        )
+        response.raise_for_status()
+        latency_ms = (time.time() - start_time) * 1000
+        data = response.json()
+        content = data["choices"][0]["message"]["content"]
+        return {"content": content, "latency_ms": latency_ms, "success": True}
+    except Exception as e:
+        return {"content": f"エラー: {str(e)}", "latency_ms": 0, "success": False}
+
+
+# ============================================
+# UI
+# ============================================
+
+st.set_page_config(
+    page_title="vLLM Spot Inference",
+    page_icon="🤖",
+    layout="wide",
+)
+
+st.title("🤖 vLLM Spot Inference Demo")
+st.markdown(f"**Model:** {MODEL_NAME} | **Endpoint:** {API_ENDPOINT}")
+
+# サイドバー
+with st.sidebar:
+    st.header("⚙️ コントロール")
     
-    <script>
-        // stliteの設定
-        stlite.mount({
-            requirements: ["requests"],
-            entrypoint: "app.py",
-            files: {
-                "app.py": {
-                    url: "./app.py"
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("▶️ 開始", disabled=st.session_state.is_running, use_container_width=True):
+            st.session_state.is_running = True
+            st.session_state.pending_inference = True
+            st.rerun()
+    
+    with col2:
+        if st.button("⏹️ 停止", disabled=not st.session_state.is_running, use_container_width=True):
+            st.session_state.is_running = False
+            st.session_state.pending_inference = False
+            st.rerun()
+    
+    status = "🟢 実行中" if st.session_state.is_running else "🔴 停止中"
+    st.markdown(f"**ステータス:** {status}")
+    
+    st.divider()
+    
+    if st.button("🗑️ 履歴をクリア", use_container_width=True):
+        st.session_state.history = []
+        st.session_state.messages = []
+        st.rerun()
+    
+    st.divider()
+    st.markdown("### 📊 統計")
+    st.markdown(f"- 推論回数: {len(st.session_state.history)}")
+    if st.session_state.history:
+        avg_latency = sum(h.get('latency_ms', 0) for h in st.session_state.history) / len(st.session_state.history)
+        st.markdown(f"- 平均レイテンシ: {avg_latency:.0f}ms")
+
+# メインエリア
+tab1, tab2 = st.tabs(["💬 チャット", "📜 履歴"])
+
+with tab1:
+    # チャット履歴表示
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+    
+    # 自動推論処理
+    if st.session_state.pending_inference and st.session_state.is_running:
+        # ランダムプロンプト選択
+        prompt = select_random_prompt(PROMPTS, st.session_state.last_prompt)
+        st.session_state.last_prompt = prompt
+        
+        # ユーザーメッセージ追加
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        # アシスタント応答
+        with st.chat_message("assistant"):
+            with st.spinner("推論中..."):
+                result = call_vllm_api(prompt)
+                st.markdown(result["content"])
+        
+        # 履歴に追加
+        st.session_state.messages.append({"role": "assistant", "content": result["content"]})
+        st.session_state.history.append({
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "prompt": prompt,
+            "response": result["content"],
+            "latency_ms": result["latency_ms"],
+        })
+        
+        # 2秒待機後に次の推論
+        if st.session_state.is_running:
+            await asyncio.sleep(DELAY_SECONDS)
+            st.rerun()
+
+with tab2:
+    if st.session_state.history:
+        for i, item in enumerate(reversed(st.session_state.history[-20:])):
+            with st.expander(f"🕐 {item['timestamp']} - {item['prompt'][:40]}..."):
+                st.markdown(f"**プロンプト:** {item['prompt']}")
+                st.markdown(f"**応答:** {item['response']}")
+                st.markdown(f"**レイテンシ:** {item['latency_ms']:.0f}ms")
+    else:
+        st.info("履歴はまだありません。「開始」ボタンを押して自動推論を開始してください。")
+
+# 手動入力
+if prompt := st.chat_input("手動でプロンプトを入力（自動推論とは別）"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    
+    with st.chat_message("assistant"):
+        with st.spinner("推論中..."):
+            result = call_vllm_api(prompt)
+            st.markdown(result["content"])
+    
+    st.session_state.messages.append({"role": "assistant", "content": result["content"]})
+    st.rerun()
+`,
                 },
-                ".streamlit/secrets.toml": `
-api_endpoint = "${window.API_ENDPOINT || 'http://localhost:8000'}"
-`
-            }
-        }, document.getElementById("root"));
+            },
+            document.getElementById("root")
+        )
     </script>
 </body>
+
 </html>
