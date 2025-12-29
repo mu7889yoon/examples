@@ -128,6 +128,19 @@ export class EcsManagedInstanceHybridCdkStack extends cdk.Stack {
     );
     cluster.addManagedInstancesCapacityProvider(miSpotCapacityProvider);
 
+    // On-Demand Capacity Provider (新規追加)
+    // Requirements: 1.2, 3.1
+    const miOnDemandCapacityProvider = new ecs.ManagedInstancesCapacityProvider(this, 'MiOnDemandCapacityProvider', {
+      capacityProviderName: 'vllm-ondemand-cp',
+      ec2InstanceProfile: instanceProfile,
+      infrastructureRole,
+      securityGroups: [ecsSecurityGroup],
+      subnets: vpc.selectSubnets({ subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS }).subnets,
+      instanceRequirements: gpuInstanceRequirements,
+    });
+    // デフォルトはON_DEMANDなので、escape hatchは不要
+    cluster.addManagedInstancesCapacityProvider(miOnDemandCapacityProvider);
+
     const taskDefinition = new ecs.TaskDefinition(this, 'VllmTaskDefinition', {
       compatibility: ecs.Compatibility.MANAGED_INSTANCES,
       cpu: '4096',
