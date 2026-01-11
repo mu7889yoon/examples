@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="origin-trial" content="ApEwB248vHgGach4SORQ7zcEs8+DxVP1dOtSyo6X7QFp3mM58gIdz3K9ob5Y6MM0Nh04c51MQxF5FbTxhwc5dAoAAAB7eyJvcmlnaW4iOiJodHRwczovL211Nzg4OXlvb24uZ2l0aHViLmlvOjQ0MyIsImZlYXR1cmUiOiJBSVByb21wdEFQSU11bHRpbW9kYWxJbnB1dCIsImV4cGlyeSI6MTc4MTU2ODAwMCwiaXNTdWJkb21haW4iOnRydWV9">
+  <title>画像タグ検索</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            border: "hsl(240 5.9% 90%)",
+            input: "hsl(240 5.9% 90%)",
+            ring: "hsl(240 5.9% 10%)",
+            background: "hsl(0 0% 100%)",
+            foreground: "hsl(240 10% 3.9%)",
+            primary: { DEFAULT: "hsl(240 5.9% 10%)", foreground: "hsl(0 0% 98%)" },
+            secondary: { DEFAULT: "hsl(240 4.8% 95.9%)", foreground: "hsl(240 5.9% 10%)" },
+            muted: { DEFAULT: "hsl(240 4.8% 95.9%)", foreground: "hsl(240 3.8% 46.1%)" },
+            accent: { DEFAULT: "hsl(240 4.8% 95.9%)", foreground: "hsl(240 5.9% 10%)" },
+            card: { DEFAULT: "hsl(0 0% 100%)", foreground: "hsl(240 10% 3.9%)" },
+          },
+          borderRadius: { lg: "0.5rem", md: "calc(0.5rem - 2px)", sm: "calc(0.5rem - 4px)" },
+        }
+      }
+    }
+  </script>
+  <style>
+    .htmx-request { opacity: 0.5; transition: opacity 200ms; }
+  </style>
+</head>
+<body class="min-h-screen bg-background text-foreground">
+  <div class="container mx-auto max-w-4xl px-4 py-8">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold tracking-tight mb-2">画像タグ検索</h1>
+      <p id="status" class="text-sm text-muted-foreground">Service Worker を登録中...</p>
+    </header>
+
+    <div class="flex flex-col sm:flex-row gap-4 mb-8">
+      <label class="flex-1 cursor-pointer">
+        <div class="flex items-center justify-center w-full h-12 px-4 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-accent transition-colors">
+          <svg class="w-5 h-5 mr-2 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+          </svg>
+          <span class="text-sm text-muted-foreground">画像をアップロード</span>
+        </div>
+        <input type="file" name="file" accept="image/*" multiple class="hidden"
+          hx-post="/api/images"
+          hx-target="#imageList"
+          hx-encoding="multipart/form-data">
+      </label>
+
+      <div class="flex-1 relative">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input type="search" name="q" placeholder="自然言語で検索...（例: 生き物の写真）"
+          class="w-full h-12 pl-10 pr-4 border border-input rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          hx-get="/api/search"
+          hx-trigger="input changed delay:500ms, search"
+          hx-target="#imageList">
+      </div>
+    </div>
+
+    <div id="imageList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
