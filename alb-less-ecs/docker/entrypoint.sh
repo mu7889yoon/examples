@@ -3,7 +3,6 @@ set -eu
 
 IP=""
 
-# IPv6 でパブリック IP を取得
 IP=$(wget -qO- http://checkip.amazonaws.com 2>/dev/null | tr -d '\n' || true)
 
 if [ -z "${IP}" ]; then
