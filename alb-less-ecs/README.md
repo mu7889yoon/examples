@@ -1,14 +1,11 @@
-# Welcome to your CDK TypeScript project
+# ALB Less ECS
 
-This is a blank project for CDK development with TypeScript.
+# how to deploy
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+```sh
+npx cdk deploy
+```
 
-## Useful commands
+こちらのブログ内でコストについて書いていたりしています。
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
+[ECSをALBなしでお得に使いたいやん？](https://mu7889yoon.github.io/posts/alb-less-ecs/)
