@@ -1,12 +1,13 @@
-# EC2 Nested Virtualization (AL2023 + KVM + GNU Hurd)
+# EC2 Nested Virtualization (Ubuntu 24.04 + KVM + GNU Hurd)
 
-このスタックは、`us-east-1` の `c8i.large` で nested virtualization を有効化し、AL2023 上で GNU Hurd を試せる状態まで自動セットアップします。
+このスタックは、`us-east-1` の `c8i.large` で nested virtualization を有効化し、Ubuntu 24.04 上で GNU Hurd を試せる状態まで自動セットアップします。
+CloudFormation の `AWS::EC2::LaunchTemplate` では `CpuOptions.NestedVirtualization` を直接指定できないため、Custom Resource (Lambda) から `RunInstances` を実行しています。
 
 ## このスタックで構築されるもの
 
-- `c8i.large` の EC2 インスタンス (AL2023)
+- `c8i.large` の EC2 インスタンス (Ubuntu 24.04)
 - インスタンス起動 API で `CpuOptions.NestedVirtualization=enabled`
-- `qemu-kvm` / `libvirt` の導入
+- `apt` で `qemu-kvm` / `libvirt` / `virtinst` を導入
 - GNU Hurd ISO のダウンロードと qcow2 ディスク作成 (`/opt/gnu-hurd/`)
 - Session Manager 前提の運用 (Security Group の inbound は開けない)
 

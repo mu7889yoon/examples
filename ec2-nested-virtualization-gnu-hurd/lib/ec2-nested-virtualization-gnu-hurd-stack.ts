@@ -1,8 +1,10 @@
-import { CfnOutput, Fn, Stack, StackProps } from 'aws-cdk-lib';
+import { CfnOutput, CustomResource, Duration, Fn, Stack, StackProps } from 'aws-cdk-lib';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as cr from 'aws-cdk-lib/custom-resources';
 import { Construct } from 'constructs';
+import * as path from 'path';
 
 export class Ec2NestedVirtualizationGnuHurdStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -40,9 +42,11 @@ export class Ec2NestedVirtualizationGnuHurdStack extends Stack {
     const userData = ec2.UserData.forLinux();
     userData.addCommands(
       'set -euxo pipefail',
-      'dnf install -y qemu-kvm qemu-img qemu-system-x86 libvirt virt-install curl tmux',
-      'systemctl enable --now libvirtd',
-      'usermod -aG libvirt ec2-user',
+      'export DEBIAN_FRONTEND=noninteractive',
+      'apt-get update',
+      'apt-get install -y qemu-kvm qemu-utils qemu-system-x86 libvirt-daemon-system libvirt-clients virtinst curl tmux',
+      'systemctl enable --now libvirtd || systemctl enable --now virtqemud || true',
+      'id -u ubuntu >/dev/null 2>&1 && usermod -aG libvirt,kvm ubuntu || true',
       'mkdir -p /opt/gnu-hurd',
       "cat <<'EOF' >/usr/local/bin/check-kvm.sh",
       '#!/usr/bin/env bash',
@@ -73,14 +77,25 @@ export class Ec2NestedVirtualizationGnuHurdStack extends Stack {
       'ISO_PATH="${WORKDIR}/gnu-hurd-netinst.iso"',
       'DISK_PATH="${WORKDIR}/gnu-hurd.qcow2"',
       'DISK_SIZE_GB="${DISK_SIZE_GB:-20}"',
+      'CDIMAGE_BASES=("https://cdimage.debian.org/cdimage/ports/13.0/hurd-i386/iso-cd/" "https://cdimage.debian.org/cdimage/ports/stable/hurd-i386/iso-cd/" "https://cdimage.debian.org/cdimage/ports/latest/hurd-i386/current/iso-cd/")',
       '',
       'mkdir -p "${WORKDIR}"',
       '',
       'if [[ -z "${ISO_URL}" ]]; then',
-      '  ISO_URL=$(curl -fsSL https://cdimage.debian.org/cdimage/ports/latest/hurd-i386/iso-cd/ \\',
-      "    | grep -Eo 'href=\"[^\"]+NETINST[^\"/]+\\.iso\"' \\",
-      "    | head -n1 \\",
-      "    | sed -E 's#href=\"([^\"]+)\"#https://cdimage.debian.org/cdimage/ports/latest/hurd-i386/iso-cd/\\1#')",
+      '  for base in "${CDIMAGE_BASES[@]}"; do',
+      '    html="$(curl -fsSL "${base}" || true)"',
+      '    [[ -z "${html}" ]] && continue',
+      '    iso_name="$(printf "%s" "${html}" | grep -Eio \'debian[^"<> ]*hurd[^"<> ]*i386[^"<> ]*netinst[^"<> ]*\\.iso\' | head -n1)"',
+      '    [[ -z "${iso_name}" ]] && continue',
+      '    if [[ "${iso_name}" =~ ^https?:// ]]; then',
+      '      ISO_URL="${iso_name}"',
+      '    elif [[ "${iso_name}" == /* ]]; then',
+      '      ISO_URL="https://cdimage.debian.org${iso_name}"',
+      '    else',
+      '      ISO_URL="${base}${iso_name}"',
+      '    fi',
+      '    break',
+      '  done',
       'fi',
       '',
       'if [[ -z "${ISO_URL}" ]]; then',
@@ -141,87 +156,53 @@ export class Ec2NestedVirtualizationGnuHurdStack extends Stack {
       '  -monitor stdio',
       'EOF',
       'chmod +x /usr/local/bin/run-gnu-hurd.sh',
-      '/usr/local/bin/prepare-gnu-hurd.sh',
+      '/usr/local/bin/prepare-gnu-hurd.sh || echo "WARN: prepare-gnu-hurd.sh failed during boot; run manually later." >&2',
+    );
+    const encodedUserData = Buffer.from(userData.render(), 'utf8').toString('base64');
+    const nestedRunnerFunction = new lambda.Function(this, 'NestedVirtRunnerFunction', {
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: 'index.handler',
+      timeout: Duration.minutes(5),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda/nested-virt-provider')),
+    });
+    nestedRunnerFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['ec2:RunInstances', 'ec2:TerminateInstances', 'ec2:DescribeInstances', 'ec2:CreateTags'],
+        resources: ['*'],
+      }),
+    );
+    nestedRunnerFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['iam:PassRole'],
+        resources: [instanceRole.roleArn],
+      }),
     );
 
-    const runInstance = new cr.AwsCustomResource(this, 'NestedVirtRunInstance', {
-      installLatestAwsSdk: false,
-      onCreate: {
-        service: 'EC2',
-        action: 'runInstances',
-        physicalResourceId: cr.PhysicalResourceId.fromResponse('Instances.0.InstanceId'),
-        outputPaths: ['Instances.0.InstanceId'],
-        parameters: {
-          ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}',
-          InstanceType: 'c8i.large',
-          MinCount: 1,
-          MaxCount: 1,
-          CpuOptions: {
-            NestedVirtualization: 'enabled',
-          },
-          IamInstanceProfile: {
-            Arn: instanceProfile.attrArn,
-          },
-          MetadataOptions: {
-            HttpEndpoint: 'enabled',
-            HttpTokens: 'required',
-          },
-          NetworkInterfaces: [
-            {
-              DeviceIndex: 0,
-              SubnetId: vpc.publicSubnets[0].subnetId,
-              AssociatePublicIpAddress: true,
-              Groups: [securityGroup.securityGroupId],
-              DeleteOnTermination: true,
-            },
-          ],
-          BlockDeviceMappings: [
-            {
-              DeviceName: '/dev/xvda',
-              Ebs: {
-                VolumeType: 'gp3',
-                VolumeSize: 30,
-                DeleteOnTermination: true,
-              },
-            },
-          ],
-          UserData: Fn.base64(userData.render()),
-          TagSpecifications: [
-            {
-              ResourceType: 'instance',
-              Tags: [
-                {
-                  Key: 'Name',
-                  Value: 'al2023-nested-virtualization-host',
-                },
-              ],
-            },
-          ],
-        },
+    const nestedRunnerProvider = new cr.Provider(this, 'NestedVirtRunnerProvider', {
+      onEventHandler: nestedRunnerFunction,
+    });
+
+    const runInstance = new CustomResource(this, 'NestedVirtRunInstance', {
+      serviceToken: nestedRunnerProvider.serviceToken,
+      properties: {
+        ImageId:
+          '{{resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id}}',
+        InstanceType: 'c8i.large',
+        NestedVirtualization: 'enabled',
+        SubnetId: vpc.publicSubnets[0].subnetId,
+        SecurityGroupId: securityGroup.securityGroupId,
+        InstanceProfileArn: instanceProfile.attrArn,
+        UserDataBase64: encodedUserData,
+        NameTag: 'ubuntu-nested-virtualization-host',
+        RootVolumeSizeGiB: '30',
+        MetadataHttpEndpoint: 'enabled',
+        MetadataHttpTokens: 'required',
+        AssociatePublicIpAddress: 'true',
       },
-      onDelete: {
-        service: 'EC2',
-        action: 'terminateInstances',
-        outputPaths: ['TerminatingInstances.0.InstanceId'],
-        parameters: {
-          InstanceIds: [new cr.PhysicalResourceIdReference()],
-        },
-        ignoreErrorCodesMatching: 'InvalidInstanceID.NotFound|InvalidInstanceID.Malformed',
-      },
-      policy: cr.AwsCustomResourcePolicy.fromStatements([
-        new iam.PolicyStatement({
-          actions: ['ec2:RunInstances', 'ec2:TerminateInstances', 'ec2:DescribeInstances', 'ec2:CreateTags'],
-          resources: ['*'],
-        }),
-        new iam.PolicyStatement({
-          actions: ['iam:PassRole'],
-          resources: [instanceRole.roleArn],
-        }),
-      ]),
     });
     runInstance.node.addDependency(instanceProfile);
 
-    const instanceId = runInstance.getResponseField('Instances.0.InstanceId');
+    const instanceId = runInstance.ref;
 
     new CfnOutput(this, 'InstanceId', {
       value: instanceId,

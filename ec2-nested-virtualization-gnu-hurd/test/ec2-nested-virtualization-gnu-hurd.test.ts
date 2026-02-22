@@ -8,12 +8,13 @@ test('Instance launch request enables nested virtualization on c8i.large', () =>
   const template = Template.fromStack(stack);
 
   template.resourceCountIs('AWS::EC2::LaunchTemplate', 0);
-  const templateString = JSON.stringify(template.toJSON());
-  expect(templateString).toContain('runInstances');
-  expect(templateString).toContain('InstanceType');
-  expect(templateString).toContain('c8i.large');
-  expect(templateString).toContain('NestedVirtualization');
-  expect(templateString).toContain('enabled');
+  template.resourceCountIs('AWS::CloudFormation::CustomResource', 1);
+  template.hasResourceProperties('AWS::CloudFormation::CustomResource', {
+    InstanceType: 'c8i.large',
+    NestedVirtualization: 'enabled',
+    ImageId:
+      '{{resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id}}',
+  });
 
   template.hasResourceProperties('AWS::EC2::SecurityGroup', {
     GroupDescription: 'Session Manager only. No inbound access.',
