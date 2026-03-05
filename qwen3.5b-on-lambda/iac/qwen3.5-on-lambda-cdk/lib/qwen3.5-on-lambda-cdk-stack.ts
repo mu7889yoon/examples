@@ -148,17 +148,16 @@ export class Qwen35OnLambdaCdkStack extends cdk.Stack {
         path.join(__dirname, '../../../src/app')
       ),
       memorySize: 10240,
-      ephemeralStorageSize: cdk.Size.gibibytes(10),
       timeout: cdk.Duration.seconds(900),
       tracing: lambda.Tracing.ACTIVE,
-      // TODO: SnapStart有効化にはmemfd方式の修正が必要（/tmpはephemeral storage制限で併用不可）
-      // snapStart: lambda.SnapStartConf.ON_PUBLISHED_VERSIONS,
+      snapStart: lambda.SnapStartConf.ON_PUBLISHED_VERSIONS,
       layers: [llamaCppLayer, webAdapterLayer],
       environment: {
         MODEL_BUCKET: modelBucket.bucketName,
         MODEL_KEY: modelKey.valueAsString,
         AWS_LAMBDA_EXEC_WRAPPER: '/opt/bootstrap',
         AWS_LWA_INVOKE_MODE: 'RESPONSE_STREAM',
+        AWS_LWA_ASYNC_INIT: 'false',
         AWS_LWA_READINESS_CHECK_PATH: '/healthz',
         AWS_LAMBDA_LOG_LEVEL: 'debug',
         LD_LIBRARY_PATH: '/opt/lib',
@@ -168,14 +167,19 @@ export class Qwen35OnLambdaCdkStack extends cdk.Stack {
     // Grant S3 read access
     modelBucket.grantRead(fn);
 
-    // Function URL (IAM Auth + RESPONSE_STREAM)
-    const fnUrl = fn.addFunctionUrl({
+    const liveAlias = new lambda.Alias(this, 'QwenFunctionLiveAlias', {
+      aliasName: 'live',
+      version: fn.currentVersion,
+    });
+
+    // Function URL (IAM Auth + RESPONSE_STREAM) bound to versioned alias for SnapStart
+    const fnUrl = liveAlias.addFunctionUrl({
       authType: lambda.FunctionUrlAuthType.AWS_IAM,
       invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
     });
 
     // 同アカウントのIAMユーザー/ロールからのFunction URL呼び出しを許可
-    fn.addPermission('AllowAccountInvokeFunctionUrl', {
+    liveAlias.addPermission('AllowAccountInvokeFunctionUrl', {
       principal: new iam.AccountPrincipal(this.account),
       action: 'lambda:InvokeFunctionUrl',
       functionUrlAuthType: lambda.FunctionUrlAuthType.AWS_IAM,
