@@ -1,0 +1,27 @@
+{
+  "name": "htmx-sse-counter",
+  "version": "1.0.0",
+  "description": "Realtime counter with HTMX and SSE using AWS Lambda Response Streaming",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^20.11.0",
+    "eslint": "^9.0.0",
+    "fast-check": "^3.15.0",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^1.2.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.500.0",
+    "@aws-sdk/lib-dynamodb": "^3.500.0"
+  }
+}

@@ -1,10 +1,12 @@
 import { Hono } from 'https://esm.sh/hono@4'
-import { getAllImages, getImage, saveImage, updateAnnotation } from './db.js'
-import { renderCard, renderList, renderEmpty } from './template.js'
-import { initPort, requestAnnotation, requestSearch } from './proxy.js'
+import { getAllImages, getImage, saveImage, updateAnnotation } from './js/db.js'
+import { renderCard, renderList, renderEmpty } from './js/template.js'
+import { initPort, requestAnnotation, requestSearch } from './js/proxy.js'
 
 const app = new Hono()
 const PER_PAGE = 12
+
+let basePath = ''
 
 function paginate(items, page) {
   const totalPages = Math.ceil(items.length / PER_PAGE)
@@ -12,12 +14,12 @@ function paginate(items, page) {
   return { items: items.slice(start, start + PER_PAGE), page, totalPages }
 }
 
-// Routes
+// Routes (相対パスで定義)
 app.get('/api/images', async (c) => {
   const page = parseInt(c.req.query('page') || '1')
   const all = await getAllImages()
   const { items, totalPages } = paginate(all, page)
-  return c.html(renderList(items, page, totalPages, '/api/images?'))
+  return c.html(renderList(items, page, totalPages, `${basePath}/api/images?`, basePath))
 })
 
 app.post('/api/images', async (c) => {
@@ -29,7 +31,7 @@ app.post('/api/images', async (c) => {
   }
   const all = await getAllImages()
   const { items, page, totalPages } = paginate(all, 1)
-  return c.html(renderList(items, page, totalPages, '/api/images?'))
+  return c.html(renderList(items, page, totalPages, `${basePath}/api/images?`, basePath))
 })
 
 app.get('/api/blob/:id', async (c) => {
@@ -42,7 +44,7 @@ app.post('/api/annotate/:id', async (c) => {
   const img = await getImage(c.req.param('id'))
   if (!img) return c.html(renderEmpty('画像が見つかりません'), 404)
   await updateAnnotation(img.id, await requestAnnotation(img.blob))
-  return c.html(renderCard(await getImage(img.id)))
+  return c.html(renderCard(await getImage(img.id), basePath))
 })
 
 app.get('/api/search', async (c) => {
@@ -52,7 +54,7 @@ app.get('/api/search', async (c) => {
   
   if (!query.trim()) {
     const { items, totalPages } = paginate(all, page)
-    return c.html(renderList(items, page, totalPages, '/api/images?'))
+    return c.html(renderList(items, page, totalPages, `${basePath}/api/images?`, basePath))
   }
   
   const annotated = all.filter(img => img.annotation)
@@ -62,7 +64,7 @@ app.get('/api/search', async (c) => {
   if (!results.length) return c.html(renderEmpty('該当なし'))
   
   const { items, totalPages } = paginate(results, page)
-  return c.html(renderList(items, page, totalPages, `/api/search?q=${encodeURIComponent(query)}&`))
+  return c.html(renderList(items, page, totalPages, `${basePath}/api/search?q=${encodeURIComponent(query)}&`, basePath))
 })
 
 // Events
@@ -71,8 +73,16 @@ self.addEventListener('message', (e) => {
 })
 
 self.addEventListener('fetch', (e) => {
-  if (new URL(e.request.url).pathname.startsWith('/api')) {
-    e.respondWith(app.fetch(e.request))
+  const url = new URL(e.request.url)
+  const scope = new URL(self.registration.scope)
+  basePath = scope.pathname.replace(/\/$/, '')
+  
+  // basePathを除去してHonoに渡す
+  if (url.pathname.startsWith(`${basePath}/api`)) {
+    const normalizedPath = url.pathname.slice(basePath.length)
+    const normalizedUrl = new URL(normalizedPath + url.search, url.origin)
+    const normalizedRequest = new Request(normalizedUrl, e.request)
+    e.respondWith(app.fetch(normalizedRequest))
   }
 })
 

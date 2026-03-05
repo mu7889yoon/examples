@@ -3,3 +3,8 @@ node_modules
 .DS_Store
 
 pure-serverless-contact-form/view/js/contact.js
+
+cdk.out/**
+.d.ts
+**/__pycache__/**
+**/data/**

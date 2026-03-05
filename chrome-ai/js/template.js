@@ -1,12 +1,12 @@
-export const renderCard = (img) => `
+export const renderCard = (img, basePath = '') => `
 <div class="group relative overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-all hover:shadow-md" id="image-${img.id}">
   <div class="aspect-square overflow-hidden">
-    <img src="/api/blob/${img.id}" alt="${img.fileName}" class="h-full w-full object-cover transition-transform group-hover:scale-105">
+    <img src="${basePath}/api/blob/${img.id}" alt="${img.fileName}" class="h-full w-full object-cover transition-transform group-hover:scale-105">
   </div>
   <div class="p-4">
     <p class="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">${img.annotation || '（アノテーションなし）'}</p>
     <button 
-      hx-post="/api/annotate/${img.id}" 
+      hx-post="${basePath}/api/annotate/${img.id}" 
       hx-target="#image-${img.id}" 
       hx-swap="outerHTML"
       class="mt-3 w-full inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
@@ -33,9 +33,9 @@ export const renderPagination = (page, totalPages, baseUrl) => {
   return `<div class="col-span-full flex items-center justify-center gap-2 mt-4">${buttons.join('')}</div>`
 }
 
-export const renderList = (images, page = 1, totalPages = 1, baseUrl = '/api/images?') => 
+export const renderList = (images, page = 1, totalPages = 1, baseUrl = '/api/images?', basePath = '') => 
   images.length 
-    ? images.map(renderCard).join('') + renderPagination(page, totalPages, baseUrl)
+    ? images.map(img => renderCard(img, basePath)).join('') + renderPagination(page, totalPages, baseUrl)
     : renderEmpty('画像がありません')
 
 export const renderEmpty = (message) => `

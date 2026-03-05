@@ -1,11 +1,63 @@
 const statusEl = document.getElementById('status')
+const alertEl = document.getElementById('alert')
+
+async function checkPromptAPI() {
+  if (!('LanguageModel' in self)) {
+    showAlert('Prompt API が利用できません', [
+      'Chrome 131以降を使用してください',
+      'chrome://flags/#prompt-api-for-gemini-nano を有効にしてください',
+      'chrome://flags/#optimization-guide-on-device-model を有効にしてください',
+    ])
+    return false
+  }
+
+  try {
+    const availability = await self.LanguageModel.availability()
+    if (availability === 'unavailable') {
+      showAlert('Prompt API モデルが利用できません', [
+        'chrome://components を開いてください',
+        '「Optimization Guide On Device Model」を探してください',
+        '「アップデートを確認」をクリックしてモデルをダウンロードしてください',
+        'ダウンロード完了後、ページをリロードしてください'
+      ])
+      return false
+    }
+    if (availability === 'downloading') {
+      showAlert('モデルをダウンロード中です', [
+        'しばらくお待ちください',
+        'ダウンロード完了後、ページをリロードしてください'
+      ], 'warning')
+      return false
+    }
+  } catch {
+  }
+
+  return true
+}
+
+function showAlert(title, steps, type = 'error') {
+  const bgColor = type === 'error' ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200'
+  const textColor = type === 'error' ? 'text-red-800' : 'text-yellow-800'
+  const titleColor = type === 'error' ? 'text-red-900' : 'text-yellow-900'
+  
+  alertEl.innerHTML = `
+    <div class="${bgColor} ${textColor} border rounded-lg p-4 mb-6">
+      <h3 class="font-semibold ${titleColor} mb-2">${title}</h3>
+      <ol class="list-decimal list-inside space-y-1 text-sm">
+        ${steps.map(s => `<li>${s}</li>`).join('')}
+      </ol>
+    </div>
+  `
+}
 
 async function init() {
+  const apiReady = await checkPromptAPI()
+  
   const registrations = await navigator.serviceWorker.getRegistrations()
   await Promise.all(registrations.map(r => r.unregister()))
   
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js', { type: 'module' })
+    await navigator.serviceWorker.register('./sw.js', { type: 'module' })
     await navigator.serviceWorker.ready
     
     const channel = new MessageChannel()
@@ -13,10 +65,10 @@ async function init() {
     channel.port1.start()
     navigator.serviceWorker.controller?.postMessage({ type: 'INIT_PORT' }, [channel.port2])
     
-    statusEl.textContent = '準備完了'
-    htmx.ajax('GET', '/api/images', { target: '#imageList' })
+    statusEl.textContent = apiReady ? '準備完了' : '準備完了（AI機能は制限されています）'
+    htmx.ajax('GET', './api/images', { target: '#imageList' })
   } catch {
-    statusEl.textContent = 'SW登録エラー'
+    statusEl.textContent = 'Service Worker登録エラー'
   }
 }
 

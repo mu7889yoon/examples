@@ -40,6 +40,8 @@
       <p id="status" class="text-sm text-muted-foreground">Service Worker を登録中...</p>
     </header>
 
+    <div id="alert"></div>
+
     <div class="flex flex-col sm:flex-row gap-4 mb-8">
       <label class="flex-1 cursor-pointer">
         <div class="flex items-center justify-center w-full h-12 px-4 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-accent transition-colors">
@@ -49,7 +51,7 @@
           <span class="text-sm text-muted-foreground">画像をアップロード</span>
         </div>
         <input type="file" name="file" accept="image/*" multiple class="hidden"
-          hx-post="/api/images"
+          hx-post="./api/images"
           hx-target="#imageList"
           hx-encoding="multipart/form-data">
       </label>
@@ -60,7 +62,7 @@
         </svg>
         <input type="search" name="q" placeholder="自然言語で検索...（例: 生き物の写真）"
           class="w-full h-12 pl-10 pr-4 border border-input rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          hx-get="/api/search"
+          hx-get="./api/search"
           hx-trigger="input changed delay:500ms, search"
           hx-target="#imageList">
       </div>
@@ -69,6 +71,6 @@
     <div id="imageList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
   </div>
 
-  <script type="module" src="/main.js"></script>
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
