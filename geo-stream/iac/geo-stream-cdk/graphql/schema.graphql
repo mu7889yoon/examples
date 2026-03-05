@@ -1,0 +1,42 @@
+type Location {
+  deviceId: ID!
+  lat: Float!
+  lng: Float!
+  speed: Float
+  heading: Float
+  accuracy: Float
+  capturedAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+input LocationInput {
+  deviceId: ID!
+  lat: Float!
+  lng: Float!
+  speed: Float
+  heading: Float
+  accuracy: Float
+  capturedAt: AWSDateTime!
+  updatedAt: AWSDateTime
+}
+
+type Query {
+  getCurrentLocation(deviceId: ID!): Location
+  listCurrentLocations(limit: Int = 500): [Location!]!
+  listRecentLocations(deviceId: ID!, from: AWSDateTime, to: AWSDateTime, limit: Int = 1000): [Location!]!
+}
+
+type Mutation {
+  publishLocationUpdate(input: LocationInput!): Location! @aws_iam
+}
+
+type Subscription {
+  onLocationUpdate(deviceId: ID): Location
+    @aws_subscribe(mutations: ["publishLocationUpdate"])
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
