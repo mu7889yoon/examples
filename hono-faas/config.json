@@ -1,0 +1,7 @@
+{
+  "port": 8787,
+  "functionsDir": "./functions",
+  "containerNamePrefix": "faas_",
+  "dockerImagePullOnRegister": true,
+  "runAsUser": "1000:1000"
+}

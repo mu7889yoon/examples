@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <title>カウンター</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/sse.js"></script>
+</head>
+<body>
+    <div hx-ext="sse" sse-connect="/api/events">
+        <div id="counter" sse-swap="counter">0</div>
+        <button hx-post="/api/increment" hx-swap="none" hx-disabled-elt="this">+1</button>
+        <div id="status">Connected</div>
+    </div>
+    <script>
+        document.body.addEventListener('htmx:sseOpen', function(e) {
+            document.getElementById('status').textContent = 'Connected';
+        })
+        document.body.addEventListener('htmx:sseError', function(e) {
+            document.getElementById('status').textContent = 'Disconnected - Reconnecting...';
+        })
+    </script>
+</body>
+</html>
