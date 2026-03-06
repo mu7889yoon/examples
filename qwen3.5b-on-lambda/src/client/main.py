@@ -27,18 +27,26 @@ class ThinkingIndicator:
     def __init__(self):
         self._stop = threading.Event()
         self._thread = None
+        self._active = False
 
     def start(self):
+        if self._active:
+            return
         self._stop.clear()
         self._thread = threading.Thread(target=self._animate, daemon=True)
         self._thread.start()
+        self._active = True
 
-    def stop(self):
+    def stop(self, clear=True):
+        if not self._active:
+            return
         self._stop.set()
         if self._thread:
             self._thread.join()
-        sys.stderr.write("\r\033[K")
-        sys.stderr.flush()
+        if clear:
+            sys.stderr.write("\r\033[K")
+            sys.stderr.flush()
+        self._active = False
 
     def _animate(self):
         i = 0
@@ -50,10 +58,11 @@ class ThinkingIndicator:
 
 
 class ChatClient:
-    def __init__(self, api_base, temperature=0.7, max_tokens=32768, profile=None, region=None):
+    def __init__(self, api_base, temperature=0.7, max_tokens=32768, profile=None, region=None, thinking_mode="auto"):
         self.api_base = api_base.rstrip("/")
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.thinking_mode = thinking_mode
         self.messages = []
         self.indicator = ThinkingIndicator()
 
@@ -80,17 +89,23 @@ class ChatClient:
         self.messages.append({"role": "user", "content": user_message})
 
         url = f"{self.api_base}/v1/chat/completions"
-        payload = json.dumps({
+        payload_obj = {
             "messages": self.messages,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "stream": True,
-        })
+        }
+        if self.thinking_mode == "on":
+            payload_obj["thinking"] = True
+        elif self.thinking_mode == "off":
+            payload_obj["thinking"] = False
+        payload = json.dumps(payload_obj)
         headers = {"Content-Type": "application/json"}
         signed_headers = self._sign_request(url, headers, payload)
 
         self.indicator.start()
         first_token = True
+        in_think = False
         full_response = ""
 
         try:
@@ -111,22 +126,47 @@ class ChatClient:
                     if not choices:
                         continue
                     delta = choices[0].get("delta", {})
+                    reasoning = delta.get("reasoning_content", "")
                     content = delta.get("content", "")
+                    if reasoning:
+                        if first_token:
+                            self.indicator.stop(clear=True)
+                            first_token = False
+                        if not in_think:
+                            sys.stdout.write("<think>")
+                            full_response += "<think>"
+                            in_think = True
+                        sys.stdout.write(reasoning)
+                        sys.stdout.flush()
+                        full_response += reasoning
                     if content:
                         if first_token:
-                            self.indicator.stop()
+                            self.indicator.stop(clear=True)
                             first_token = False
+                        if in_think:
+                            sys.stdout.write("</think>\n")
+                            full_response += "</think>\n"
+                            in_think = False
                         sys.stdout.write(content)
                         sys.stdout.flush()
                         full_response += content
         except KeyboardInterrupt:
-            self.indicator.stop()
+            self.indicator.stop(clear=first_token)
+            if in_think:
+                sys.stdout.write("</think>")
+                sys.stdout.flush()
+                full_response += "</think>"
             if full_response:
                 self.messages.append({"role": "assistant", "content": full_response})
             print("\n[Interrupted]")
             return
         finally:
-            self.indicator.stop()
+            self.indicator.stop(clear=first_token)
+
+        if in_think:
+            sys.stdout.write("</think>")
+            sys.stdout.flush()
+            full_response += "</think>"
 
         print()
         if full_response:
@@ -144,13 +184,26 @@ def main():
     parser.add_argument("--max-tokens", type=int, default=32768)
     parser.add_argument("--profile", default=None, help="AWS profile name")
     parser.add_argument("--region", default=os.environ.get("AWS_REGION"), help="AWS region for SigV4 signing")
+    parser.add_argument(
+        "--thinking",
+        choices=["auto", "on", "off"],
+        default="auto",
+        help="thinking mode: auto (no directive), on (/think), off (/no_think)",
+    )
     args = parser.parse_args()
 
     if not args.api_base:
         print("Error: --api-base or CHAT_API_BASE env var required")
         sys.exit(1)
 
-    client = ChatClient(args.api_base, args.temperature, args.max_tokens, args.profile, args.region)
+    client = ChatClient(
+        args.api_base,
+        args.temperature,
+        args.max_tokens,
+        args.profile,
+        args.region,
+        args.thinking,
+    )
 
     last_interrupt = 0
 

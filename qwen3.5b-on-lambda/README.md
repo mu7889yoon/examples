@@ -37,6 +37,9 @@ npx cdk deploy \
   --parameters ModelKey=Qwen3.5-4B-Q4_K_M.gguf \
   --parameters ModelUrl='https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf?download=true'
 ```
+npx cdk deploy \
+  --parameters ModelKey=Qwen3.5-9B-Q4_K_M.gguf \
+  --parameters ModelUrl='https://huggingface.co/unsloth/Qwen3.5-9B-GGUF/resolve/main/Qwen3.5-9B-Q4_K_M.gguf?download=true'
 
 ### 2. クライアントで会話
 

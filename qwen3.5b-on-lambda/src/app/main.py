@@ -150,6 +150,7 @@ class ChatCompletionRequest(BaseModel):
     top_k: Optional[int] = 40
     top_p: Optional[float] = 0.9
     repeat_penalty: Optional[float] = 1.1
+    thinking: Optional[bool] = None
     stream: bool = True
 
 @app.post("/v1/chat/completions")
@@ -158,11 +159,17 @@ async def handle_chat_completion(request: ChatCompletionRequest):
     created_timestamp = int(datetime.now().timestamp())
 
     # Build prompt using Qwen3.5 ChatML format
-    # Prepend /no_think system message if no system message exists
+    # Optionally prepend think directive if no system message exists.
+    # - thinking=True  -> force /think
+    # - thinking=False -> force /no_think
+    # - thinking=None  -> do not inject directive
     prompt_parts = []
     has_system = any(msg.role == "system" for msg in request.messages)
     if not has_system:
-        prompt_parts.append("<|im_start|>system\n/no_think<|im_end|>\n")
+        if request.thinking is True:
+            prompt_parts.append("<|im_start|>system\n/think<|im_end|>\n")
+        elif request.thinking is False:
+            prompt_parts.append("<|im_start|>system\n/no_think<|im_end|>\n")
     for msg in request.messages:
         prompt_parts.append(
             f"<|im_start|>{msg.role}\n{msg.content}<|im_end|>\n"
