@@ -74,7 +74,7 @@ export async function createSessions(
           },
         });
         agent.sessionId = session.id ?? null;
-        await session.setModel("claude-4-6-haiku");
+        await session.setModel("global.anthropic.claude-haiku-4-5-20251001-v1:0");
       } catch {
         agent.status = "error";
         agent.endTime = Date.now();
