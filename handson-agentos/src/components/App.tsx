@@ -9,7 +9,6 @@ import {
   disposeAll,
 } from "../agent-manager.js";
 import { writeReport } from "../report-writer.js";
-import { startMetricsCollection } from "../metrics-collector.js";
 import type {
   AppPhase,
   AgentState,
@@ -201,25 +200,11 @@ export function App() {
         }),
       );
 
-      // Start metrics collection for healthy agents
-      const metricsCollectors = agentInstances
-        .filter((ai) => ai.status !== "error" && ai.vm)
-        .map((ai) => ({
-          agentId: ai.id,
-          collector: startMetricsCollection(ai.vm, ai.id),
-        }));
+      // Start metrics collection is not available in host-based mode
 
       // 4. Run all agents — stream events via onEvent callback
-      await runAllAgents(agentInstances, cfg.prompt, handleEvent);
+      await runAllAgents(agentInstances, cfg.prompt, handleEvent, cfg);
       if (disposed) return;
-
-      // Stop metrics collection and gather results
-      const metricsMap = new Map(
-        metricsCollectors.map(({ agentId, collector }) => [
-          agentId,
-          collector.stop(),
-        ]),
-      );
 
       // Mark all agents as completed/error in UI state
       updateAgents((prev) =>
@@ -230,16 +215,11 @@ export function App() {
           const elapsed = inst
             ? (inst.endTime ?? Date.now()) - inst.startTime
             : a.elapsedMs;
-          const metrics = metricsMap.get(a.id) ?? null;
           return {
             ...a,
             status: finalStatus,
             statusIcon: STATUS_ICONS[finalStatus],
             elapsedMs: elapsed,
-            currentMemory:
-              metrics && metrics.snapshots.length > 0
-                ? metrics.snapshots[metrics.snapshots.length - 1]!
-                : a.currentMemory,
           };
         }),
       );
@@ -249,10 +229,7 @@ export function App() {
       if (disposed) return;
 
       // Attach metrics to results
-      const resultsWithMetrics = agentResults.map((r) => ({
-        ...r,
-        metrics: metricsMap.get(r.agentId) ?? r.metrics,
-      }));
+      const resultsWithMetrics = agentResults;
 
       setResults(resultsWithMetrics);
       setPhase("completed");
