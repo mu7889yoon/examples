@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Box, Text } from "ink";
 import { loadConfig, validateCredentials } from "../config.js";
 import {
@@ -8,6 +8,7 @@ import {
   collectResults,
   disposeAll,
 } from "../agent-manager.js";
+import { writeReport } from "../report-writer.js";
 import { startMetricsCollection } from "../metrics-collector.js";
 import type {
   AppPhase,
@@ -66,12 +67,26 @@ export function App() {
   const [agents, setAgents] = useState<AgentState[]>([]);
   const [results, setResults] = useState<AgentResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const agentsRef = useRef<AgentState[]>([]);
+
+  // Keep ref in sync with state for use in async effects
+  const updateAgents = useCallback(
+    (updater: AgentState[] | ((prev: AgentState[]) => AgentState[])) => {
+      setAgents((prev) => {
+        const next =
+          typeof updater === "function" ? updater(prev) : updater;
+        agentsRef.current = next;
+        return next;
+      });
+    },
+    [],
+  );
 
   // ── onEvent callback — updates agent state on each session event ──
 
   const handleEvent = useCallback(
     (agentId: number, event: ParsedEvent) => {
-      setAgents((prev) =>
+      updateAgents((prev) =>
         prev.map((agent) => {
           if (agent.id !== agentId) return agent;
 
@@ -115,7 +130,7 @@ export function App() {
         }),
       );
     },
-    [],
+    [updateAgents],
   );
 
   // ── Main lifecycle effect ──────────────────────────────────────
@@ -145,7 +160,7 @@ export function App() {
       }
 
       // Initialize agent states for UI
-      setAgents(createInitialAgentStates(cfg.agentCount));
+      updateAgents(createInitialAgentStates(cfg.agentCount));
       setPhase("running");
 
       // 2. Create AgentOs instances
@@ -153,7 +168,7 @@ export function App() {
       if (disposed) return;
 
       // Update agent states with any creation errors
-      setAgents((prev) =>
+      updateAgents((prev) =>
         prev.map((a) => {
           const inst = agentInstances.find((ai) => ai.id === a.id);
           if (inst && inst.status === "error") {
@@ -172,7 +187,7 @@ export function App() {
       if (disposed) return;
 
       // Update agent states with any session creation errors
-      setAgents((prev) =>
+      updateAgents((prev) =>
         prev.map((a) => {
           const inst = agentInstances.find((ai) => ai.id === a.id);
           if (inst && inst.status === "error") {
@@ -207,7 +222,7 @@ export function App() {
       );
 
       // Mark all agents as completed/error in UI state
-      setAgents((prev) =>
+      updateAgents((prev) =>
         prev.map((a) => {
           const inst = agentInstances.find((ai) => ai.id === a.id);
           const finalStatus: AgentStatus =
@@ -242,6 +257,11 @@ export function App() {
       setResults(resultsWithMetrics);
       setPhase("completed");
 
+      // 5.5. Write report if --output-dir is specified
+      if (cfg.outputDir) {
+        await writeReport(cfg.outputDir, resultsWithMetrics, agentsRef.current);
+      }
+
       // 6. Cleanup
       await disposeAll(agentInstances);
     };
@@ -257,7 +277,7 @@ export function App() {
     return () => {
       disposed = true;
     };
-  }, [handleEvent]);
+  }, [handleEvent, updateAgents]);
 
   // ── Render ─────────────────────────────────────────────────────
 
