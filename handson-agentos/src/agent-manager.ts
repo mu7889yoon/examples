@@ -1,4 +1,5 @@
 import { AgentOs } from "@rivet-dev/agent-os-core";
+import pi from "@rivet-dev/agent-os-pi";
 import type {
   AgentInstance,
   AgentResult,
@@ -6,11 +7,10 @@ import type {
   ParsedEvent,
 } from "./types.js";
 import { parseSessionEvent } from "./event-parser.js";
-import { startMetricsCollection } from "./metrics-collector.js";
+
+const MODEL_ID = "global.anthropic.claude-haiku-4-5-20251001-v1:0";
 
 // ── createAgents ─────────────────────────────────────────────────
-// 5つの AgentOs インスタンスを並列作成。
-// 個別の VM 作成失敗は error ステータスで記録し、残りで継続する（要件 6.1）。
 
 export async function createAgents(
   config: AppConfig,
@@ -19,7 +19,7 @@ export async function createAgents(
 
   const settled = await Promise.allSettled(
     ids.map(async (id) => {
-      const vm = await AgentOs.create();
+      const vm = await AgentOs.create({ software: [pi] });
       return {
         id,
         name: `Agent-${id}`,
@@ -33,10 +33,7 @@ export async function createAgents(
   );
 
   return settled.map((result, idx) => {
-    if (result.status === "fulfilled") {
-      return result.value;
-    }
-    // VM creation failed — mark as error, keep a placeholder
+    if (result.status === "fulfilled") return result.value;
     return {
       id: idx + 1,
       name: `Agent-${idx + 1}`,
@@ -49,10 +46,7 @@ export async function createAgents(
   });
 }
 
-
 // ── createSessions ───────────────────────────────────────────────
-// 各 Agent に Pi セッションを作成し、Claude 4.6 Haiku を指定する。
-// エラー状態の Agent はスキップする。
 
 export async function createSessions(
   agents: AgentInstance[],
@@ -65,7 +59,17 @@ export async function createSessions(
       if (agent.status === "error" || !agent.vm) return;
 
       try {
-        const session = await agent.vm.createSession("pi", {
+        const vm = agent.vm as AgentOs;
+
+        // Write Pi settings to configure Bedrock model before session creation
+        const piSettings = JSON.stringify({
+          defaultProvider: "amazon-bedrock",
+          defaultModel: MODEL_ID,
+        });
+        await vm.mkdir("/home/user/.pi/agent", { recursive: true });
+        await vm.writeFile("/home/user/.pi/agent/settings.json", piSettings);
+
+        const { sessionId } = await vm.createSession("pi", {
           env: {
             AWS_ACCESS_KEY_ID: awsCredentials.accessKeyId,
             AWS_SECRET_ACCESS_KEY: awsCredentials.secretAccessKey,
@@ -73,8 +77,7 @@ export async function createSessions(
             AWS_REGION: awsCredentials.region,
           },
         });
-        agent.sessionId = session.id ?? null;
-        await session.setModel("global.anthropic.claude-haiku-4-5-20251001-v1:0");
+        agent.sessionId = sessionId;
       } catch {
         agent.status = "error";
         agent.endTime = Date.now();
@@ -84,8 +87,6 @@ export async function createSessions(
 }
 
 // ── runAllAgents ─────────────────────────────────────────────────
-// 全 Agent にプロンプトを並列送信し、Session Event をストリーミング受信する。
-// 個別の Agent 失敗は他に影響しない（要件 6.2）。
 
 export async function runAllAgents(
   agents: AgentInstance[],
@@ -94,20 +95,28 @@ export async function runAllAgents(
 ): Promise<void> {
   await Promise.allSettled(
     agents.map(async (agent) => {
-      if (agent.status === "error" || !agent.vm) return;
+      if (agent.status === "error" || !agent.vm || !agent.sessionId) return;
 
       try {
         agent.status = "thinking";
         agent.startTime = Date.now();
 
-        const session = agent.vm.getSession(agent.sessionId);
-        const stream = await session.sendMessage(prompt);
+        const vm = agent.vm as AgentOs;
+        const sessionId = agent.sessionId;
 
-        for await (const rawEvent of stream) {
-          const parsed = parseSessionEvent(rawEvent);
+        // Auto-approve permission requests so the agent can write files / run commands
+        vm.onPermissionRequest(sessionId, (req) => {
+          vm.respondPermission(sessionId, req.permissionId, "always");
+        });
+
+        // Subscribe to session events and forward as ParsedEvent
+        vm.onSessionEvent(sessionId, (notification) => {
+          const parsed = parseSessionEvent({
+            method: notification.method,
+            params: notification.params as any,
+          });
           onEvent(agent.id, parsed);
 
-          // Update agent status based on event kind
           if (parsed.kind === "file_write") {
             agent.status = "coding";
           } else if (parsed.kind === "command_exec") {
@@ -117,7 +126,10 @@ export async function runAllAgents(
               agent.status = "thinking";
             }
           }
-        }
+        });
+
+        // Send prompt and wait for completion
+        await vm.prompt(sessionId, prompt);
 
         agent.status = "completed";
         agent.endTime = Date.now();
@@ -129,9 +141,7 @@ export async function runAllAgents(
   );
 }
 
-
 // ── collectResults ───────────────────────────────────────────────
-// 各 VM から生成コードを取得し、30秒タイムアウト付きで実行する。
 
 export async function collectResults(
   agents: AgentInstance[],
@@ -142,20 +152,15 @@ export async function collectResults(
 
       if (agent.status === "error" || !agent.vm) {
         return {
-          agentId: agent.id,
-          agentName: agent.name,
-          code: null,
-          language: null,
-          filePath: null,
-          stdout: null,
-          stderr: null,
-          exitCode: null,
+          agentId: agent.id, agentName: agent.name,
+          code: null, language: null, filePath: null,
+          stdout: null, stderr: null, exitCode: null,
           error: "Agent failed before result collection",
-          elapsedMs: elapsed,
-          metrics: null,
+          elapsedMs: elapsed, metrics: null,
         };
       }
 
+      const vm = agent.vm as AgentOs;
       let code: string | null = null;
       let language: string | null = null;
       let filePath: string | null = null;
@@ -164,24 +169,26 @@ export async function collectResults(
       let exitCode: number | null = null;
       let error: string | null = null;
 
-      // Attempt to read generated code from the VM
+      // Read generated code from the VM
       try {
-        const files = await agent.vm.readDir("/home");
+        const files = await vm.readdir("/home");
         const codeFile = findCodeFile(files);
         if (codeFile) {
-          filePath = codeFile;
-          language = detectLanguage(codeFile);
-          code = await agent.vm.readFile(codeFile);
+          const fullPath = codeFile.startsWith("/") ? codeFile : `/home/${codeFile}`;
+          filePath = fullPath;
+          language = detectLanguage(fullPath);
+          const buf = await vm.readFile(fullPath);
+          code = new TextDecoder().decode(buf);
         }
       } catch {
         error = "Failed to read generated code";
       }
 
-      // Execute the code with a 30-second timeout
+      // Execute with 30s timeout
       if (filePath && !error) {
         try {
           const command = buildRunCommand(filePath, language);
-          const result = await execWithTimeout(agent.vm, command, 30_000);
+          const result = await execWithTimeout(vm, command, 30_000);
           stdout = result.stdout ?? null;
           stderr = result.stderr ?? null;
           exitCode = result.exitCode ?? null;
@@ -195,17 +202,9 @@ export async function collectResults(
       }
 
       return {
-        agentId: agent.id,
-        agentName: agent.name,
-        code,
-        language,
-        filePath,
-        stdout,
-        stderr,
-        exitCode,
-        error,
-        elapsedMs: elapsed,
-        metrics: null, // Metrics are attached externally by App.tsx
+        agentId: agent.id, agentName: agent.name,
+        code, language, filePath, stdout, stderr, exitCode,
+        error, elapsedMs: elapsed, metrics: null,
       };
     }),
   );
@@ -214,43 +213,31 @@ export async function collectResults(
     r.status === "fulfilled"
       ? r.value
       : {
-          agentId: 0,
-          agentName: "Unknown",
-          code: null,
-          language: null,
-          filePath: null,
-          stdout: null,
-          stderr: null,
-          exitCode: null,
+          agentId: 0, agentName: "Unknown",
+          code: null, language: null, filePath: null,
+          stdout: null, stderr: null, exitCode: null,
           error: r.reason instanceof Error ? r.reason.message : String(r.reason),
-          elapsedMs: 0,
-          metrics: null,
+          elapsedMs: 0, metrics: null,
         },
   );
 }
 
 // ── disposeAll ───────────────────────────────────────────────────
-// 全 VM を安全に dispose する。
 
 export async function disposeAll(agents: AgentInstance[]): Promise<void> {
   await Promise.allSettled(
     agents.map(async (agent) => {
       if (agent.vm) {
-        try {
-          await agent.vm.dispose();
-        } catch {
-          // Best-effort cleanup — ignore errors
-        }
+        try { await (agent.vm as AgentOs).dispose(); } catch { /* best-effort */ }
       }
     }),
   );
 }
 
-
 // ── Internal helpers ─────────────────────────────────────────────
 
 async function execWithTimeout(
-  vm: any,
+  vm: AgentOs,
   command: string,
   timeoutMs: number,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
@@ -265,19 +252,7 @@ async function execWithTimeout(
 }
 
 function findCodeFile(files: string[]): string | null {
-  // Common code file extensions in priority order
-  const extensions = [
-    ".py",
-    ".js",
-    ".ts",
-    ".rb",
-    ".rs",
-    ".go",
-    ".java",
-    ".c",
-    ".cpp",
-    ".sh",
-  ];
+  const extensions = [".py", ".js", ".ts", ".rb", ".rs", ".go", ".java", ".c", ".cpp", ".sh"];
   for (const ext of extensions) {
     const match = files.find((f) => f.endsWith(ext));
     if (match) return match;
@@ -288,43 +263,24 @@ function findCodeFile(files: string[]): string | null {
 function detectLanguage(filePath: string): string | null {
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
   const langMap: Record<string, string> = {
-    py: "Python",
-    js: "JavaScript",
-    ts: "TypeScript",
-    rb: "Ruby",
-    rs: "Rust",
-    go: "Go",
-    java: "Java",
-    c: "C",
-    cpp: "C++",
-    sh: "Shell",
+    py: "Python", js: "JavaScript", ts: "TypeScript", rb: "Ruby",
+    rs: "Rust", go: "Go", java: "Java", c: "C", cpp: "C++", sh: "Shell",
   };
   return langMap[ext] ?? null;
 }
 
 function buildRunCommand(filePath: string, language: string | null): string {
   switch (language) {
-    case "Python":
-      return `python3 ${filePath}`;
-    case "JavaScript":
-      return `node ${filePath}`;
-    case "TypeScript":
-      return `npx tsx ${filePath}`;
-    case "Ruby":
-      return `ruby ${filePath}`;
-    case "Rust":
-      return `rustc ${filePath} -o /tmp/out && /tmp/out`;
-    case "Go":
-      return `go run ${filePath}`;
-    case "Java":
-      return `java ${filePath}`;
-    case "C":
-      return `gcc ${filePath} -o /tmp/out && /tmp/out`;
-    case "C++":
-      return `g++ ${filePath} -o /tmp/out && /tmp/out`;
-    case "Shell":
-      return `bash ${filePath}`;
-    default:
-      return `bash ${filePath}`;
+    case "Python": return `python3 ${filePath}`;
+    case "JavaScript": return `node ${filePath}`;
+    case "TypeScript": return `npx tsx ${filePath}`;
+    case "Ruby": return `ruby ${filePath}`;
+    case "Rust": return `rustc ${filePath} -o /tmp/out && /tmp/out`;
+    case "Go": return `go run ${filePath}`;
+    case "Java": return `java ${filePath}`;
+    case "C": return `gcc ${filePath} -o /tmp/out && /tmp/out`;
+    case "C++": return `g++ ${filePath} -o /tmp/out && /tmp/out`;
+    case "Shell": return `bash ${filePath}`;
+    default: return `bash ${filePath}`;
   }
 }
