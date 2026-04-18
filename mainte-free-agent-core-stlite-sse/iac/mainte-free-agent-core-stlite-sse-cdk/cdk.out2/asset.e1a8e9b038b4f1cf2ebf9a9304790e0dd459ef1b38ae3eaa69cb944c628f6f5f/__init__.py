@@ -1,1 +1,0 @@
-# stlite app package

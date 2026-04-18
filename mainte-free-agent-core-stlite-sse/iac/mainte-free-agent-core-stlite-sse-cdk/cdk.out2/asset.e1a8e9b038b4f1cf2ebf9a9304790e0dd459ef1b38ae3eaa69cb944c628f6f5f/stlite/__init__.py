@@ -1,1 +1,0 @@
-# stlite package marker
