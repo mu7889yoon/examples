@@ -1,0 +1,36 @@
+{
+  "version": "53.0.0",
+  "files": {
+    "aa876b7f2d270c001e8054b09b264faff2285f4ea4cbb243b351dc8183602ce2": {
+      "displayName": "AuthEdgeFunction/Code",
+      "source": {
+        "path": "asset.aa876b7f2d270c001e8054b09b264faff2285f4ea4cbb243b351dc8183602ce2",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "162833658961-us-east-1-317582a7": {
+          "bucketName": "cdk-hnb659fds-assets-162833658961-us-east-1",
+          "objectKey": "aa876b7f2d270c001e8054b09b264faff2285f4ea4cbb243b351dc8183602ce2.zip",
+          "region": "us-east-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::162833658961:role/cdk-hnb659fds-file-publishing-role-162833658961-us-east-1"
+        }
+      }
+    },
+    "4527dcf60e72e8fe4727224608dfdd38f3e3b9299578262f114f18a58bd8d400": {
+      "displayName": "edge-lambda-stack-c86f4343826a7dbdcbaeb81262ffb5aeaea8c08eb7 Template",
+      "source": {
+        "path": "edge-lambda-stack-c86f4343826a7dbdcbaeb81262ffb5aeaea8c08eb7.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "162833658961-us-east-1-03d08b7f": {
+          "bucketName": "cdk-hnb659fds-assets-162833658961-us-east-1",
+          "objectKey": "4527dcf60e72e8fe4727224608dfdd38f3e3b9299578262f114f18a58bd8d400.json",
+          "region": "us-east-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::162833658961:role/cdk-hnb659fds-file-publishing-role-162833658961-us-east-1"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

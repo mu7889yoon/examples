@@ -1,0 +1,1200 @@
+{
+ "Resources": {
+  "StliteSiteBucketF6A902D3": {
+   "Type": "AWS::S3::Bucket",
+   "Properties": {
+    "PublicAccessBlockConfiguration": {
+     "BlockPublicAcls": true,
+     "BlockPublicPolicy": true,
+     "IgnorePublicAcls": true,
+     "RestrictPublicBuckets": true
+    },
+    "Tags": [
+     {
+      "Key": "aws-cdk:auto-delete-objects",
+      "Value": "true"
+     },
+     {
+      "Key": "aws-cdk:cr-owned:0e9cd65d",
+      "Value": "true"
+     }
+    ]
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/StliteSiteBucket/Resource"
+   }
+  },
+  "StliteSiteBucketPolicy7546B792": {
+   "Type": "AWS::S3::BucketPolicy",
+   "Properties": {
+    "Bucket": {
+     "Ref": "StliteSiteBucketF6A902D3"
+    },
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "s3:DeleteObject*",
+        "s3:GetBucket*",
+        "s3:List*",
+        "s3:PutBucketPolicy"
+       ],
+       "Effect": "Allow",
+       "Principal": {
+        "AWS": {
+         "Fn::GetAtt": [
+          "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+          "Arn"
+         ]
+        }
+       },
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "StliteSiteBucketF6A902D3",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "StliteSiteBucketF6A902D3",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": "s3:GetObject",
+       "Condition": {
+        "StringEquals": {
+         "AWS:SourceArn": {
+          "Fn::Join": [
+           "",
+           [
+            "arn:",
+            {
+             "Ref": "AWS::Partition"
+            },
+            ":cloudfront::",
+            {
+             "Ref": "AWS::AccountId"
+            },
+            ":distribution/",
+            {
+             "Ref": "Distribution830FAC52"
+            }
+           ]
+          ]
+         }
+        }
+       },
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "cloudfront.amazonaws.com"
+       },
+       "Resource": {
+        "Fn::Join": [
+         "",
+         [
+          {
+           "Fn::GetAtt": [
+            "StliteSiteBucketF6A902D3",
+            "Arn"
+           ]
+          },
+          "/*"
+         ]
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/StliteSiteBucket/Policy/Resource"
+   }
+  },
+  "StliteSiteBucketAutoDeleteObjectsCustomResource5BE8BAB6": {
+   "Type": "Custom::S3AutoDeleteObjects",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F",
+      "Arn"
+     ]
+    },
+    "BucketName": {
+     "Ref": "StliteSiteBucketF6A902D3"
+    }
+   },
+   "DependsOn": [
+    "StliteSiteBucketPolicy7546B792"
+   ],
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/StliteSiteBucket/AutoDeleteObjectsCustomResource/Default"
+   }
+  },
+  "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ]
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role"
+   }
+  },
+  "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": "cdk-hnb659fds-assets-162833658961-ap-northeast-1",
+     "S3Key": "faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip"
+    },
+    "Timeout": 900,
+    "MemorySize": 128,
+    "Handler": "index.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Description": {
+     "Fn::Join": [
+      "",
+      [
+       "Lambda function for auto-deleting objects in ",
+       {
+        "Ref": "StliteSiteBucketF6A902D3"
+       },
+       " S3 bucket."
+      ]
+     ]
+    }
+   },
+   "DependsOn": [
+    "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler",
+    "aws:asset:path": "asset.faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6",
+    "aws:asset:property": "Code"
+   }
+  },
+  "UserPool6BA7E5F2": {
+   "Type": "AWS::Cognito::UserPool",
+   "Properties": {
+    "AccountRecoverySetting": {
+     "RecoveryMechanisms": [
+      {
+       "Name": "verified_phone_number",
+       "Priority": 1
+      },
+      {
+       "Name": "verified_email",
+       "Priority": 2
+      }
+     ]
+    },
+    "AdminCreateUserConfig": {
+     "AllowAdminCreateUserOnly": false
+    },
+    "AutoVerifiedAttributes": [
+     "email"
+    ],
+    "EmailVerificationMessage": "The verification code to your new account is {####}",
+    "EmailVerificationSubject": "Verify your new account",
+    "Policies": {
+     "PasswordPolicy": {
+      "MinimumLength": 8,
+      "RequireNumbers": true,
+      "RequireSymbols": false,
+      "RequireUppercase": true
+     }
+    },
+    "SmsVerificationMessage": "The verification code to your new account is {####}",
+    "UsernameAttributes": [
+     "email"
+    ],
+    "VerificationMessageTemplate": {
+     "DefaultEmailOption": "CONFIRM_WITH_CODE",
+     "EmailMessage": "The verification code to your new account is {####}",
+     "EmailSubject": "Verify your new account",
+     "SmsMessage": "The verification code to your new account is {####}"
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/UserPool/Resource"
+   }
+  },
+  "UserPoolHostedUiDomainE021B0B6": {
+   "Type": "AWS::Cognito::UserPoolDomain",
+   "Properties": {
+    "Domain": {
+     "Fn::Join": [
+      "",
+      [
+       "stlite-agentcore-",
+       {
+        "Ref": "AWS::AccountId"
+       }
+      ]
+     ]
+    },
+    "UserPoolId": {
+     "Ref": "UserPool6BA7E5F2"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/UserPool/HostedUiDomain/Resource"
+   }
+  },
+  "UserPoolAppClientDD0407EC": {
+   "Type": "AWS::Cognito::UserPoolClient",
+   "Properties": {
+    "AllowedOAuthFlows": [
+     "code"
+    ],
+    "AllowedOAuthFlowsUserPoolClient": true,
+    "AllowedOAuthScopes": [
+     "openid",
+     "email"
+    ],
+    "CallbackURLs": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "https://",
+        {
+         "Fn::GetAtt": [
+          "Distribution830FAC52",
+          "DomainName"
+         ]
+        }
+       ]
+      ]
+     }
+    ],
+    "GenerateSecret": false,
+    "LogoutURLs": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "https://",
+        {
+         "Fn::GetAtt": [
+          "Distribution830FAC52",
+          "DomainName"
+         ]
+        }
+       ]
+      ]
+     }
+    ],
+    "SupportedIdentityProviders": [
+     "COGNITO"
+    ],
+    "UserPoolId": {
+     "Ref": "UserPool6BA7E5F2"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/UserPool/AppClient/Resource"
+   }
+  },
+  "IdentityPoolEC8A1A0D": {
+   "Type": "AWS::Cognito::IdentityPool",
+   "Properties": {
+    "AllowUnauthenticatedIdentities": false,
+    "CognitoIdentityProviders": [
+     {
+      "ClientId": {
+       "Ref": "UserPoolAppClientDD0407EC"
+      },
+      "ProviderName": {
+       "Fn::Join": [
+        "",
+        [
+         "cognito-idp.ap-northeast-1.",
+         {
+          "Ref": "AWS::URLSuffix"
+         },
+         "/",
+         {
+          "Ref": "UserPool6BA7E5F2"
+         }
+        ]
+       ]
+      },
+      "ServerSideTokenCheck": true
+     }
+    ]
+   },
+   "DependsOn": [
+    "UserPoolAppClientDD0407EC",
+    "UserPoolHostedUiDomainE021B0B6",
+    "UserPool6BA7E5F2"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/Resource"
+   }
+  },
+  "IdentityPoolAuthenticatedRole42131CF5": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRoleWithWebIdentity",
+       "Condition": {
+        "StringEquals": {
+         "cognito-identity.amazonaws.com:aud": {
+          "Ref": "IdentityPoolEC8A1A0D"
+         }
+        },
+        "ForAnyValue:StringLike": {
+         "cognito-identity.amazonaws.com:amr": "authenticated"
+        }
+       },
+       "Effect": "Allow",
+       "Principal": {
+        "Federated": "cognito-identity.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Description": {
+     "Fn::Join": [
+      "",
+      [
+       "Default Authenticated Role for Identity Pool ",
+       {
+        "Fn::GetAtt": [
+         "IdentityPoolEC8A1A0D",
+         "Name"
+        ]
+       }
+      ]
+     ]
+    }
+   },
+   "DependsOn": [
+    "UserPoolAppClientDD0407EC",
+    "UserPoolHostedUiDomainE021B0B6",
+    "UserPool6BA7E5F2"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/AuthenticatedRole/Resource"
+   }
+  },
+  "IdentityPoolAuthenticatedRoleDefaultPolicy3DB89FA0": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "bedrock-agentcore:InvokeAgentRuntime",
+       "Effect": "Allow",
+       "Resource": "arn:aws:bedrock-agentcore:*:*:runtime/*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "IdentityPoolAuthenticatedRoleDefaultPolicy3DB89FA0",
+    "Roles": [
+     {
+      "Ref": "IdentityPoolAuthenticatedRole42131CF5"
+     }
+    ]
+   },
+   "DependsOn": [
+    "UserPoolAppClientDD0407EC",
+    "UserPoolHostedUiDomainE021B0B6",
+    "UserPool6BA7E5F2"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/AuthenticatedRole/DefaultPolicy/Resource"
+   }
+  },
+  "IdentityPoolUnauthenticatedRole68AEFF8B": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRoleWithWebIdentity",
+       "Condition": {
+        "StringEquals": {
+         "cognito-identity.amazonaws.com:aud": {
+          "Ref": "IdentityPoolEC8A1A0D"
+         }
+        },
+        "ForAnyValue:StringLike": {
+         "cognito-identity.amazonaws.com:amr": "unauthenticated"
+        }
+       },
+       "Effect": "Allow",
+       "Principal": {
+        "Federated": "cognito-identity.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Description": {
+     "Fn::Join": [
+      "",
+      [
+       "Default Unauthenticated Role for Identity Pool ",
+       {
+        "Fn::GetAtt": [
+         "IdentityPoolEC8A1A0D",
+         "Name"
+        ]
+       }
+      ]
+     ]
+    }
+   },
+   "DependsOn": [
+    "UserPoolAppClientDD0407EC",
+    "UserPoolHostedUiDomainE021B0B6",
+    "UserPool6BA7E5F2"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/UnauthenticatedRole/Resource"
+   }
+  },
+  "IdentityPoolDefaultRoleAttachmentD81AFC39": {
+   "Type": "AWS::Cognito::IdentityPoolRoleAttachment",
+   "Properties": {
+    "IdentityPoolId": {
+     "Ref": "IdentityPoolEC8A1A0D"
+    },
+    "Roles": {
+     "authenticated": {
+      "Fn::GetAtt": [
+       "IdentityPoolAuthenticatedRole42131CF5",
+       "Arn"
+      ]
+     },
+     "unauthenticated": {
+      "Fn::GetAtt": [
+       "IdentityPoolUnauthenticatedRole68AEFF8B",
+       "Arn"
+      ]
+     }
+    }
+   },
+   "DependsOn": [
+    "UserPoolAppClientDD0407EC",
+    "UserPoolHostedUiDomainE021B0B6",
+    "UserPool6BA7E5F2"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/DefaultRoleAttachment/Resource"
+   }
+  },
+  "AuthEdgeFunctionArnReaderF42CCCF4": {
+   "Type": "Custom::CrossRegionStringParameterReader",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "CustomCrossRegionStringParameterReaderCustomResourceProviderHandler65B5F33A",
+      "Arn"
+     ]
+    },
+    "Region": "us-east-1",
+    "ParameterName": "/cdk/EdgeFunctionArn/ap-northeast-1/MainteFreeAgentCoreStliteSseCdkStack/AuthEdgeFunction",
+    "RefreshToken": "AuthEdgeFunctionCurrentVersionD4BD8CDB261d209cfa8ff7f75788670fde608fe7"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/AuthEdgeFunction/ArnReader/Default"
+   }
+  },
+  "CustomCrossRegionStringParameterReaderCustomResourceProviderRole71CD6825": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Version": "2012-10-17",
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ]
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+     }
+    ],
+    "Policies": [
+     {
+      "PolicyName": "Inline",
+      "PolicyDocument": {
+       "Version": "2012-10-17",
+       "Statement": [
+        {
+         "Effect": "Allow",
+         "Resource": "arn:aws:ssm:us-east-1:162833658961:parameter/cdk/EdgeFunctionArn/*",
+         "Action": [
+          "ssm:GetParameter"
+         ]
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/Custom::CrossRegionStringParameterReaderCustomResourceProvider/Role"
+   }
+  },
+  "CustomCrossRegionStringParameterReaderCustomResourceProviderHandler65B5F33A": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": "cdk-hnb659fds-assets-162833658961-ap-northeast-1",
+     "S3Key": "934f26e3be418ca933eeffc0c28bc2546c67037b7ea94c28b93ad93e1952a30e.zip"
+    },
+    "Timeout": 900,
+    "MemorySize": 128,
+    "Handler": "__entrypoint__.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "CustomCrossRegionStringParameterReaderCustomResourceProviderRole71CD6825",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x"
+   },
+   "DependsOn": [
+    "CustomCrossRegionStringParameterReaderCustomResourceProviderRole71CD6825"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/Custom::CrossRegionStringParameterReaderCustomResourceProvider/Handler",
+    "aws:asset:path": "asset.934f26e3be418ca933eeffc0c28bc2546c67037b7ea94c28b93ad93e1952a30e",
+    "aws:asset:property": "Code"
+   }
+  },
+  "DistributionOrigin1S3OriginAccessControlEB606076": {
+   "Type": "AWS::CloudFront::OriginAccessControl",
+   "Properties": {
+    "OriginAccessControlConfig": {
+     "Name": "MainteFreeAgentCoreStliteSseOrigin1S3OriginAccessControl76FAC093",
+     "OriginAccessControlOriginType": "s3",
+     "SigningBehavior": "always",
+     "SigningProtocol": "sigv4"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/Distribution/Origin1/S3OriginAccessControl/Resource"
+   }
+  },
+  "Distribution830FAC52": {
+   "Type": "AWS::CloudFront::Distribution",
+   "Properties": {
+    "DistributionConfig": {
+     "DefaultCacheBehavior": {
+      "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+      "Compress": true,
+      "LambdaFunctionAssociations": [
+       {
+        "EventType": "viewer-request",
+        "LambdaFunctionARN": {
+         "Fn::GetAtt": [
+          "AuthEdgeFunctionArnReaderF42CCCF4",
+          "FunctionArn"
+         ]
+        }
+       }
+      ],
+      "TargetOriginId": "MainteFreeAgentCoreStliteSseCdkStackDistributionOrigin158443C1C",
+      "ViewerProtocolPolicy": "redirect-to-https"
+     },
+     "DefaultRootObject": "index.html",
+     "Enabled": true,
+     "HttpVersion": "http2",
+     "IPV6Enabled": true,
+     "Origins": [
+      {
+       "DomainName": {
+        "Fn::GetAtt": [
+         "StliteSiteBucketF6A902D3",
+         "RegionalDomainName"
+        ]
+       },
+       "Id": "MainteFreeAgentCoreStliteSseCdkStackDistributionOrigin158443C1C",
+       "OriginAccessControlId": {
+        "Fn::GetAtt": [
+         "DistributionOrigin1S3OriginAccessControlEB606076",
+         "Id"
+        ]
+       },
+       "S3OriginConfig": {
+        "OriginAccessIdentity": ""
+       }
+      }
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/Distribution/Resource"
+   }
+  },
+  "DeployStliteAppAwsCliLayerEE1A77AB": {
+   "Type": "AWS::Lambda::LayerVersion",
+   "Properties": {
+    "Content": {
+     "S3Bucket": "cdk-hnb659fds-assets-162833658961-ap-northeast-1",
+     "S3Key": "e2659170a0721541efa761a8d5d04d5e36cbbf691c4b15a9053002b7c825055d.zip"
+    },
+    "Description": "/opt/awscli/aws"
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/DeployStliteApp/AwsCliLayer/Resource",
+    "aws:asset:path": "asset.e2659170a0721541efa761a8d5d04d5e36cbbf691c4b15a9053002b7c825055d.zip",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Content"
+   }
+  },
+  "DeployStliteAppCustomResource3C352301": {
+   "Type": "Custom::CDKBucketDeployment",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C81C01536",
+      "Arn"
+     ]
+    },
+    "SourceBucketNames": [
+     "cdk-hnb659fds-assets-162833658961-ap-northeast-1"
+    ],
+    "SourceObjectKeys": [
+     "e1a8e9b038b4f1cf2ebf9a9304790e0dd459ef1b38ae3eaa69cb944c628f6f5f.zip"
+    ],
+    "DestinationBucketName": {
+     "Ref": "StliteSiteBucketF6A902D3"
+    },
+    "WaitForDistributionInvalidation": true,
+    "Prune": true,
+    "DistributionId": {
+     "Ref": "Distribution830FAC52"
+    },
+    "DistributionPaths": [
+     "/*"
+    ],
+    "OutputObjectKeys": true
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/DeployStliteApp/CustomResource/Default"
+   }
+  },
+  "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/Resource"
+   }
+  },
+  "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "s3:GetBucket*",
+        "s3:GetObject*",
+        "s3:List*"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        "arn:aws:s3:::cdk-hnb659fds-assets-162833658961-ap-northeast-1",
+        "arn:aws:s3:::cdk-hnb659fds-assets-162833658961-ap-northeast-1/*"
+       ]
+      },
+      {
+       "Action": [
+        "s3:Abort*",
+        "s3:DeleteObject*",
+        "s3:GetBucket*",
+        "s3:GetObject*",
+        "s3:List*",
+        "s3:PutObject",
+        "s3:PutObjectLegalHold",
+        "s3:PutObjectRetention",
+        "s3:PutObjectTagging",
+        "s3:PutObjectVersionTagging"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "StliteSiteBucketF6A902D3",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "StliteSiteBucketF6A902D3",
+             "Arn"
+            ]
+           },
+           "/*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": [
+        "cloudfront:CreateInvalidation",
+        "cloudfront:GetInvalidation"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF",
+    "Roles": [
+     {
+      "Ref": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C81C01536": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": "cdk-hnb659fds-assets-162833658961-ap-northeast-1",
+     "S3Key": "3423a042b818e31c1e34a19d6689ab2e5f9b70fcbe9e71df66f241b20a200bd9.zip"
+    },
+    "Environment": {
+     "Variables": {
+      "AWS_CA_BUNDLE": "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
+     }
+    },
+    "Handler": "index.handler",
+    "Layers": [
+     {
+      "Ref": "DeployStliteAppAwsCliLayerEE1A77AB"
+     }
+    ],
+    "Role": {
+     "Fn::GetAtt": [
+      "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265",
+      "Arn"
+     ]
+    },
+    "Runtime": "python3.13",
+    "Timeout": 900
+   },
+   "DependsOn": [
+    "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF",
+    "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/Resource",
+    "aws:asset:path": "asset.3423a042b818e31c1e34a19d6689ab2e5f9b70fcbe9e71df66f241b20a200bd9",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CLogGroup817B64E9": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "LogGroupName": {
+     "Fn::Join": [
+      "",
+      [
+       "/aws/lambda/",
+       {
+        "Ref": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C81C01536"
+       }
+      ]
+     ]
+    },
+    "RetentionInDays": 731
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/LogGroup/Resource"
+   }
+  },
+  "AgentCoreRuntimeExecutionRoleB22B0632": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "bedrock-agentcore.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Description": "Execution role for Bedrock Agent Core Runtime",
+    "MaxSessionDuration": 28800
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/AgentCoreRuntime/ExecutionRole/Resource"
+   }
+  },
+  "AgentCoreRuntimeExecutionRoleDefaultPolicyE7874FBB": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "logs:CreateLogGroup",
+        "logs:DescribeLogStreams"
+       ],
+       "Effect": "Allow",
+       "Resource": "arn:aws:logs:ap-northeast-1:162833658961:log-group:/aws/bedrock-agentcore/runtimes/*",
+       "Sid": "LogGroupAccess"
+      },
+      {
+       "Action": "logs:DescribeLogGroups",
+       "Effect": "Allow",
+       "Resource": "arn:aws:logs:ap-northeast-1:162833658961:log-group:*",
+       "Sid": "DescribeLogGroups"
+      },
+      {
+       "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+       ],
+       "Effect": "Allow",
+       "Resource": "arn:aws:logs:ap-northeast-1:162833658961:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*",
+       "Sid": "LogStreamAccess"
+      },
+      {
+       "Action": [
+        "xray:GetSamplingRules",
+        "xray:GetSamplingTargets",
+        "xray:PutTelemetryRecords",
+        "xray:PutTraceSegments"
+       ],
+       "Effect": "Allow",
+       "Resource": "*",
+       "Sid": "XRayAccess"
+      },
+      {
+       "Action": "cloudwatch:PutMetricData",
+       "Condition": {
+        "StringEquals": {
+         "cloudwatch:namespace": "bedrock-agentcore"
+        }
+       },
+       "Effect": "Allow",
+       "Resource": "*",
+       "Sid": "CloudWatchMetrics"
+      },
+      {
+       "Action": [
+        "bedrock-agentcore:GetWorkloadAccessToken",
+        "bedrock-agentcore:GetWorkloadAccessTokenForJWT",
+        "bedrock-agentcore:GetWorkloadAccessTokenForUserId"
+       ],
+       "Effect": "Allow",
+       "Resource": [
+        "arn:aws:bedrock-agentcore:ap-northeast-1:162833658961:workload-identity-directory/default",
+        "arn:aws:bedrock-agentcore:ap-northeast-1:162833658961:workload-identity-directory/default/workload-identity/*"
+       ],
+       "Sid": "GetAgentAccessToken"
+      },
+      {
+       "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream",
+        "ecr:GetAuthorizationToken"
+       ],
+       "Effect": "Allow",
+       "Resource": "*"
+      },
+      {
+       "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+       ],
+       "Effect": "Allow",
+       "Resource": "arn:aws:ecr:ap-northeast-1:162833658961:repository/cdk-hnb659fds-container-assets-162833658961-ap-northeast-1"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "AgentCoreRuntimeExecutionRoleDefaultPolicyE7874FBB",
+    "Roles": [
+     {
+      "Ref": "AgentCoreRuntimeExecutionRoleB22B0632"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/AgentCoreRuntime/ExecutionRole/DefaultPolicy/Resource"
+   }
+  },
+  "AgentCoreRuntime2D1B9BF1": {
+   "Type": "AWS::BedrockAgentCore::Runtime",
+   "Properties": {
+    "AgentRuntimeArtifact": {
+     "ContainerConfiguration": {
+      "ContainerUri": {
+       "Fn::Sub": "162833658961.dkr.ecr.ap-northeast-1.${AWS::URLSuffix}/cdk-hnb659fds-container-assets-162833658961-ap-northeast-1:0fc29fc517da96750670c3d32562d035fa7023cac22612d4c4f23ad1bcc32eb6"
+      }
+     }
+    },
+    "AgentRuntimeName": "stliteNovaAgent",
+    "EnvironmentVariables": {
+     "BEDROCK_MODEL_ID": "amazon.nova-lite-v1:0",
+     "AWS_REGION": "ap-northeast-1"
+    },
+    "LifecycleConfiguration": {},
+    "NetworkConfiguration": {
+     "NetworkMode": "PUBLIC"
+    },
+    "ProtocolConfiguration": "HTTP",
+    "RoleArn": {
+     "Fn::GetAtt": [
+      "AgentCoreRuntimeExecutionRoleB22B0632",
+      "Arn"
+     ]
+    }
+   },
+   "DependsOn": [
+    "AgentCoreRuntimeExecutionRoleDefaultPolicyE7874FBB",
+    "AgentCoreRuntimeExecutionRoleB22B0632"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/AgentCoreRuntime/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/9VXS3MbNwz+LeaxQ21cu73oVFl2M55xG41l56LReCgSWjHmEls+JCs7+987fK03cdr0kUzag0YrAATwfSCw0Fl19uNp1Z2esIOdcPE4UXJTdUvH+CNlB/vQ2fOqu/D8EdyqIxuF/HHhN0ryGedgLZmS7wglBhrcM7VAJfmRTIkA6wweCSXMO7wEBQ7ebN4Bd5ZMnfHQr+l8qwe/jXySmkzJOIkQ3Z5XUWWrZDp74a1f06RKsUOO8WdMbBxl0P/VWOnA0jEHDehxqAtmYRVxp8+6pxxrLR1W3b0Fs0BUq45YUNulrPV9e6XZRoFI0CmxstbXeqYks2DJtCPQMKkyMYmyt2Dk9vhS1zJrD2hEYTrA0Tega7cbSvGblwbu2xYMZxZK0Cy/lLUsRRiEy2OzQWXJdMuUDWH+qJ6J0IKRlodLbJjUq474LMi5ZFaSOiQr4tPCwFY+pQp96DFZDn7nSoJ2L/3WoMEwB0vgJpQ6pk0JznygoSNbhYdILPNuh0a+Z06inqOA14ZpN7BpObZQ7jBnSm0Yf7w3qogU1ujdIPgo2ZRdkFwL0E66YyTlo9+3qGDmHOO7cIuGm/Igs02LqKrxgVVKOwh4zHthcC8FmIioMPGckWRN1YUoqy7UiRvZhlMZArPWNyAu4l1pjdRctkzNOEev3Qc2MVE+HO172hEmxB0uyqlyHVZdv47aCOtaK6lh0KV++Izyi+f5j09T0jDNakgdJcNtCDNiJDvOTLZdf01KPuP3z7X/Av7LUjTsaQnWStSX3rCR7X8U/LfQxkEQyKT5vRKYKyDvMGheYH8pFmL0eslhv5ijvyf+RmG/ojiWKFWnp1yhF1uD2lUdPLVgZDBlqroSNfzsdWyJCIxeSuuM3PgoCaNqy7xyF7Bje4kmdBgaWcvSLXsJBzALgw45Pr8xDQhpgLuJw8nOudYSSkDUcMOajWBpymxz3Ldg7HP7wR60uzu2QKbZ+SS8psG6OIFKQreILi1BZdVZnr+JiaXNbI7aGVQJ03yrP6EL4jHantrzh05Aq/AY6MmL0OUgoMxacLaaha+eqoil6uZbfcOOYDIOupS6VuBQD8R2xHspyls12Np8jygBvZcGdfA/GAS/C29aDPtLlDnZAPpiYeJFTNMKGjTHpXxfBNDuoAHD1NKhYTWMVPuWPz8t/UaDK696C9wb6Y6vDfq2CLdSgT1aB83zQhANhv1GFNc7poUCU/LzOiQ8npu/gGOCOZZw07CBrD+tiu21piPyPsvY/56dqzGkZxaS8mYMP/V1IaenCmtbdTc5dCArP/7KSoh4olj0dAPCIH9kNWjH0UAVRnlKqadzbx02t2DRG/7Blj9s+3H0Z4OP7MuqFv4h0NglS8dqqWs69rjOnfMQ6/rADpYrWc0Odq5kxBrmV+xZ71rveno6Yardser05Kf8r+VV+M5AJgOSbJbB5DmtUUD1zr7an/1QfX9WnZ68s1JOcg2K7e9xRC2lBw4AAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "MainteFreeAgentCoreStliteSseCdkStack/CDKMetadata/Default"
+   }
+  }
+ },
+ "Outputs": {
+  "UserPoolId": {
+   "Value": {
+    "Ref": "UserPool6BA7E5F2"
+   }
+  },
+  "UserPoolClientId": {
+   "Value": {
+    "Ref": "UserPoolAppClientDD0407EC"
+   }
+  },
+  "IdentityPoolId": {
+   "Value": {
+    "Ref": "IdentityPoolEC8A1A0D"
+   }
+  },
+  "CloudFrontDomainName": {
+   "Value": {
+    "Fn::GetAtt": [
+     "Distribution830FAC52",
+     "DomainName"
+    ]
+   }
+  },
+  "CloudFrontUrl": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://",
+      {
+       "Fn::GetAtt": [
+        "Distribution830FAC52",
+        "DomainName"
+       ]
+      }
+     ]
+    ]
+   }
+  },
+  "S3BucketName": {
+   "Value": {
+    "Ref": "StliteSiteBucketF6A902D3"
+   }
+  },
+  "Region": {
+   "Value": "ap-northeast-1"
+  },
+  "AgentRuntimeArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "AgentCoreRuntime2D1B9BF1",
+     "AgentRuntimeArn"
+    ]
+   }
+  },
+  "LambdaEdgeConfigJson": {
+   "Description": "lambda/auth/config.json に設定する値",
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "{\"region\":\"ap-northeast-1\",\"userPoolId\":\"",
+      {
+       "Ref": "UserPool6BA7E5F2"
+      },
+      "\",\"userPoolAppId\":\"",
+      {
+       "Ref": "UserPoolAppClientDD0407EC"
+      },
+      "\",\"userPoolDomain\":\"",
+      {
+       "Ref": "UserPoolHostedUiDomainE021B0B6"
+      },
+      ".auth.ap-northeast-1.amazoncognito.com\"}"
+     ]
+    ]
+   }
+  },
+  "CognitoCallbackUrl": {
+   "Description": "Cognito User Pool Client の callbackUrls / logoutUrls に設定する値",
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://",
+      {
+       "Fn::GetAtt": [
+        "Distribution830FAC52",
+        "DomainName"
+       ]
+      }
+     ]
+    ]
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

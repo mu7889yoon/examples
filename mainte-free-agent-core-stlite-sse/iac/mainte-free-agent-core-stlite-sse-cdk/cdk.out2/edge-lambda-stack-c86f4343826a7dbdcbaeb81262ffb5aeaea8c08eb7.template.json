@@ -1,0 +1,159 @@
+{
+ "Resources": {
+  "AuthEdgeFunctionServiceRoleFE755970": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": [
+         "edgelambda.amazonaws.com",
+         "lambda.amazonaws.com"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "edge-lambda-stack-c86f4343826a7dbdcbaeb81262ffb5aeaea8c08eb7/AuthEdgeFunction/ServiceRole/Resource"
+   }
+  },
+  "AuthEdgeFunctionD4F75C86": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": "cdk-hnb659fds-assets-162833658961-us-east-1",
+     "S3Key": "aa876b7f2d270c001e8054b09b264faff2285f4ea4cbb243b351dc8183602ce2.zip"
+    },
+    "Handler": "index.handler",
+    "MemorySize": 128,
+    "Role": {
+     "Fn::GetAtt": [
+      "AuthEdgeFunctionServiceRoleFE755970",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs20.x",
+    "Timeout": 5
+   },
+   "DependsOn": [
+    "AuthEdgeFunctionServiceRoleFE755970"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "edge-lambda-stack-c86f4343826a7dbdcbaeb81262ffb5aeaea8c08eb7/AuthEdgeFunction/Resource",
+    "aws:asset:path": "asset.aa876b7f2d270c001e8054b09b264faff2285f4ea4cbb243b351dc8183602ce2",
+    "aws:asset:is-bundled": true,
+    "aws:asset:property": "Code"
+   }
+  },
+  "AuthEdgeFunctionLogGroupC4BD8416": {
+   "Type": "AWS::Logs::LogGroup",
+   "Properties": {
+    "LogGroupName": {
+     "Fn::Join": [
+      "",
+      [
+       "/aws/lambda/",
+       {
+        "Ref": "AuthEdgeFunctionD4F75C86"
+       }
+      ]
+     ]
+    },
+    "RetentionInDays": 731
+   },
+   "UpdateReplacePolicy": "Retain",
+   "DeletionPolicy": "Retain",
+   "Metadata": {
+    "aws:cdk:path": "edge-lambda-stack-c86f4343826a7dbdcbaeb81262ffb5aeaea8c08eb7/AuthEdgeFunction/LogGroup/Resource"
+   }
+  },
+  "AuthEdgeFunctionCurrentVersionD4BD8CDB261d209cfa8ff7f75788670fde608fe7": {
+   "Type": "AWS::Lambda::Version",
+   "Properties": {
+    "FunctionName": {
+     "Ref": "AuthEdgeFunctionD4F75C86"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "edge-lambda-stack-c86f4343826a7dbdcbaeb81262ffb5aeaea8c08eb7/AuthEdgeFunction/CurrentVersion/Resource",
+    "aws:cdk:do-not-refactor": true
+   }
+  },
+  "AuthEdgeFunctionParameter1103831E": {
+   "Type": "AWS::SSM::Parameter",
+   "Properties": {
+    "Name": "/cdk/EdgeFunctionArn/ap-northeast-1/MainteFreeAgentCoreStliteSseCdkStack/AuthEdgeFunction",
+    "Type": "String",
+    "Value": {
+     "Ref": "AuthEdgeFunctionCurrentVersionD4BD8CDB261d209cfa8ff7f75788670fde608fe7"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "edge-lambda-stack-c86f4343826a7dbdcbaeb81262ffb5aeaea8c08eb7/AuthEdgeFunction/Parameter/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/1VRy27CMBD8lvqIjEtDe+EWKrWXqkIgcYkQWmw3NfgRee0iavnfq+AE0dM+ZnZm165Y9TJjswc445SL01SrA0ubAPxE4Yz7pMEcBLD0Fi0PytkmER9tUEaSBZkQSr7BCi39UHEnRqDnuBiGykjj/GWjfgucd/T1y46idCs9FvHid8cZoEwVGJbWTssmEUCMRorlhSwS6byyXHWga85dtKNj4fQD9dWkaFJiwEIrxcppxZVEsmjSv96l9gN3VzboJTLF+R4QZUBW94HinC0jP8mwBJQNmZAd1a5Flj5c++5d7PpjhvQTzP3ZIyNTRNO/tle2XYEHI4P0TSLdmN8GKcEraws63kvdpnKm1702AVpl20ytE5Id8fGnemZPFZs9HFGp6fB3bF3iH4s4Vqz+AQAA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "edge-lambda-stack-c86f4343826a7dbdcbaeb81262ffb5aeaea8c08eb7/CDKMetadata/Default"
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,952 @@
+{
+  "/MainteFreeAgentCoreStliteSseCdkStack/StliteSiteBucket": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "blockPublicAccess": "*",
+        "removalPolicy": "destroy",
+        "autoDeleteObjects": true
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::S3AutoDeleteObjectsCustomResourceProvider": [
+    {
+      "type": "aws:cdk:is-custom-resource-handler-customResourceProvider",
+      "data": true
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/UserPool": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "selfSignUpEnabled": true,
+        "signInAliases": {
+          "email": true
+        },
+        "autoVerify": {
+          "email": true
+        },
+        "passwordPolicy": {
+          "minLength": "*",
+          "requireUppercase": true,
+          "requireDigits": true,
+          "requireSymbols": false
+        },
+        "removalPolicy": "destroy"
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/IdentityPool": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "authenticationProviders": {
+          "userPools": "*"
+        }
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/AuthEdgeFunction": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::CrossRegionStringParameterReaderCustomResourceProvider": [
+    {
+      "type": "aws:cdk:is-custom-resource-handler-customResourceProvider",
+      "data": true
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Distribution": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "defaultBehavior": {
+          "origin": "*",
+          "viewerProtocolPolicy": "redirect-to-https",
+          "edgeLambdas": [
+            {
+              "functionVersion": "*",
+              "eventType": "viewer-request"
+            }
+          ]
+        },
+        "defaultRootObject": "*"
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "layers": [
+          "*"
+        ],
+        "environment": "*",
+        "timeout": "*",
+        "role": "*",
+        "memorySize": "*",
+        "ephemeralStorageSize": "*",
+        "vpc": "*",
+        "vpcSubnets": "*",
+        "securityGroups": "*",
+        "filesystem": "*",
+        "logGroup": "*",
+        "code": "*",
+        "handler": "*",
+        "runtime": "*"
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addEnvironment": [
+          "*",
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addLayers": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:is-custom-resource-handler-singleton",
+      "data": true
+    },
+    {
+      "type": "aws:cdk:is-custom-resource-handler-runtime-family",
+      "data": 2
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/AgentCoreRuntime": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:info",
+      "data": "Container URI validation skipped as it contains unresolved CDK tokens. The URI will be validated at deployment time.",
+      "trace": [
+        "Annotations.addMessage (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/annotations.js:1:2399)",
+        "Annotations.addInfo (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/annotations.js:1:1546)",
+        "WrappedClass.validateContainerUri (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/@aws-cdk/aws-bedrock-agentcore-alpha/lib/runtime/runtime.ts:747:28)",
+        "WrappedClass.renderAgentRuntimeArtifact (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/@aws-cdk/aws-bedrock-agentcore-alpha/lib/runtime/runtime.ts:471:14)",
+        "Object.produce (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/@aws-cdk/aws-bedrock-agentcore-alpha/lib/runtime/runtime.ts:336:29)",
+        "LazyAny.resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/lazy.js:1:4170)",
+        "LazyAny.resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/lazy.js:1:4778)",
+        "RememberingTokenResolver.resolveToken (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/resolvable.js:1:1646)",
+        "RememberingTokenResolver.resolveToken (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:4669)",
+        "resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:3175)",
+        "Object.resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:1282)",
+        "resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:3537)",
+        "Object.resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:1282)",
+        "RememberingTokenResolver.resolveToken (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/resolvable.js:1:1687)",
+        "RememberingTokenResolver.resolveToken (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:4669)",
+        "resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:3175)",
+        "Object.resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:1282)",
+        "resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:3537)",
+        "Object.resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:1282)",
+        "RememberingTokenResolver.resolveToken (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/resolvable.js:1:1687)",
+        "RememberingTokenResolver.resolveToken (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:4669)",
+        "resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:3175)",
+        "Object.resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:1282)",
+        "resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:3537)",
+        "Object.resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:1282)",
+        "resolve (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:3537)",
+        "findTokens (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/resolve.js:1:4431)",
+        "findAllReferences (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/refs.js:1:5326)",
+        "resolveReferences (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/refs.js:1:1761)",
+        "prepareApp (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/prepare-app.js:1:928)",
+        "synthesize (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/private/synthesis.js:1:2092)",
+        "App.synth (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/stage.js:1:3286)",
+        "process.<anonymous> (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/aws-cdk-lib/core/lib/app.js:1:2128)",
+        "Object.onceWrapper (node:events:623:26)",
+        "process.emit (node:events:508:28)",
+        "process.emit (node:domain:489:12)",
+        "process.emit.sharedData.processEmitHook.installedValue [as emit] (/Users/ny/workspace/private/examples/mainte-free-agent-core-stlite-sse/iac/mainte-free-agent-core-stlite-sse-cdk/node_modules/@cspotcode/source-map-support/source-map-support.js:745:40)"
+      ]
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/UserPoolId": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "UserPoolId"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/UserPoolClientId": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "UserPoolClientId"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/IdentityPoolId": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "IdentityPoolId"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/CloudFrontDomainName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CloudFrontDomainName"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/CloudFrontUrl": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CloudFrontUrl"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/S3BucketName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "S3BucketName"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Region": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "Region"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/AgentRuntimeArn": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AgentRuntimeArn"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/LambdaEdgeConfigJson": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "LambdaEdgeConfigJson"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/CognitoCallbackUrl": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CognitoCallbackUrl"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/StliteSiteBucket/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "StliteSiteBucketF6A902D3"
+    },
+    {
+      "type": "aws:cdk:analytics:mixin",
+      "data": {
+        "mixin": "aws-cdk-lib.aws_s3.mixins.BucketAutoDeleteObjects"
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/StliteSiteBucket/Policy": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "bucket": "*"
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/StliteSiteBucket/AutoDeleteObjectsCustomResource": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/UserPool/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "UserPool6BA7E5F2"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/UserPool/HostedUiDomain": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "userPool": "*",
+        "cognitoDomain": {
+          "domainPrefix": "*"
+        }
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/UserPool/AppClient": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "userPool": "*",
+        "generateSecret": false,
+        "oAuth": {
+          "flows": {
+            "authorizationCodeGrant": true
+          },
+          "scopes": "*",
+          "callbackUrls": "*",
+          "logoutUrls": "*"
+        }
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "IdentityPoolEC8A1A0D"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/AuthenticatedRole": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "description": "*",
+        "assumedBy": {
+          "principalAccount": "*",
+          "assumeRoleAction": "*"
+        }
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachInlinePolicy": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachInlinePolicy": [
+          "*"
+        ]
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/UnauthenticatedRole": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "description": "*",
+        "assumedBy": {
+          "principalAccount": "*",
+          "assumeRoleAction": "*"
+        }
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/DefaultRoleAttachment": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/AuthEdgeFunction/ArnReader": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": "*"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::CrossRegionStringParameterReaderCustomResourceProvider/Role": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCrossRegionStringParameterReaderCustomResourceProviderRole71CD6825"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::CrossRegionStringParameterReaderCustomResourceProvider/Handler": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCrossRegionStringParameterReaderCustomResourceProviderHandler65B5F33A"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Distribution/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "Distribution830FAC52"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/DeployStliteApp/AwsCliLayer": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {}
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/DeployStliteApp/CustomResourceHandler": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "uuid": "*",
+        "layers": [
+          "*"
+        ],
+        "environment": "*",
+        "lambdaPurpose": "*",
+        "timeout": "*",
+        "role": "*",
+        "memorySize": "*",
+        "ephemeralStorageSize": "*",
+        "vpc": "*",
+        "vpcSubnets": "*",
+        "securityGroups": "*",
+        "filesystem": "*",
+        "logGroup": "*",
+        "code": "*",
+        "handler": "*",
+        "runtime": "*"
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addMetadata": [
+          "*",
+          true
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addMetadata": [
+          "*",
+          "*"
+        ]
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/DeployStliteApp/CustomResource": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "assumedBy": {
+          "principalAccount": "*",
+          "assumeRoleAction": "*"
+        },
+        "managedPolicies": [
+          {
+            "managedPolicyArn": "*"
+          }
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachInlinePolicy": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachInlinePolicy": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C81C01536"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/LogGroup": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "logGroupName": "*"
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/AgentCoreRuntime/ExecutionRole": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": {
+        "assumedBy": {
+          "principalAccount": "*",
+          "assumeRoleAction": "*"
+        },
+        "description": "*",
+        "maxSessionDuration": "*"
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachInlinePolicy": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachInlinePolicy": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addToPrincipalPolicy": [
+          {}
+        ]
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/AgentCoreRuntime/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AgentCoreRuntime2D1B9BF1"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/StliteSiteBucket/Policy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "StliteSiteBucketPolicy7546B792"
+    },
+    {
+      "type": "aws:cdk:analytics:mixin",
+      "data": {
+        "mixin": "aws-cdk-lib.aws_s3.mixins.BucketPolicyStatements"
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/StliteSiteBucket/AutoDeleteObjectsCustomResource/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "StliteSiteBucketAutoDeleteObjectsCustomResource5BE8BAB6"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/UserPool/HostedUiDomain/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "UserPoolHostedUiDomainE021B0B6"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/UserPool/AppClient/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "UserPoolAppClientDD0407EC"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/AuthenticatedRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "IdentityPoolAuthenticatedRole42131CF5"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/AuthenticatedRole/DefaultPolicy": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachToRole": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachToRole": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/UnauthenticatedRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "IdentityPoolUnauthenticatedRole68AEFF8B"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/DefaultRoleAttachment/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "IdentityPoolDefaultRoleAttachmentD81AFC39"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/AuthEdgeFunction/ArnReader/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AuthEdgeFunctionArnReaderF42CCCF4"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Distribution/Origin1/S3OriginAccessControl": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/DeployStliteApp/AwsCliLayer/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DeployStliteAppAwsCliLayerEE1A77AB"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/DeployStliteApp/Asset1/AssetBucket": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/DeployStliteApp/CustomResource/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DeployStliteAppCustomResource3C352301"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/DefaultPolicy": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachToRole": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachToRole": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/Code/AssetBucket": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/LogGroup/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CLogGroup817B64E9"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/AgentCoreRuntime/ExecutionRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AgentCoreRuntimeExecutionRoleB22B0632"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/AgentCoreRuntime/ExecutionRole/DefaultPolicy": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachToRole": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "attachToRole": [
+          "*"
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    },
+    {
+      "type": "aws:cdk:analytics:method",
+      "data": {
+        "addStatements": [
+          {}
+        ]
+      }
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/IdentityPool/AuthenticatedRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "IdentityPoolAuthenticatedRoleDefaultPolicy3DB89FA0"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Distribution/Origin1/S3OriginAccessControl/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DistributionOrigin1S3OriginAccessControlEB606076"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/DeployStliteApp/AwsCliLayer/Code/AssetBucket": [
+    {
+      "type": "aws:cdk:analytics:construct",
+      "data": "*"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF"
+    }
+  ],
+  "/MainteFreeAgentCoreStliteSseCdkStack/AgentCoreRuntime/ExecutionRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AgentCoreRuntimeExecutionRoleDefaultPolicyE7874FBB"
+    }
+  ]
+}
