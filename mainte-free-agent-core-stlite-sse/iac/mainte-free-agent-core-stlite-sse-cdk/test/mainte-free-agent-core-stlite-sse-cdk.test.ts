@@ -6,7 +6,9 @@ let template: Template;
 
 beforeAll(() => {
   const app = new cdk.App();
-  const stack = new MainteFreeAgentCoreStliteSseCdkStack(app, 'TestStack');
+  const stack = new MainteFreeAgentCoreStliteSseCdkStack(app, 'TestStack', {
+    env: { account: '123456789012', region: 'ap-northeast-1' },
+  });
   template = Template.fromStack(stack);
 });
 
@@ -60,9 +62,7 @@ test('CfnOutputs are defined', () => {
   template.hasOutput('UserPoolId', {});
   template.hasOutput('UserPoolClientId', {});
   template.hasOutput('IdentityPoolId', {});
-  template.hasOutput('CloudFrontDomainName', {});
   template.hasOutput('CloudFrontUrl', {});
-  template.hasOutput('S3BucketName', {});
-  template.hasOutput('HostedUiDomain', {});
   template.hasOutput('Region', {});
+  template.hasOutput('AgentRuntimeArn', {});
 });

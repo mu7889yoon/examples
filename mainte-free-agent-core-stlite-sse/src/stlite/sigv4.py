@@ -8,7 +8,7 @@ import hashlib
 import hmac
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 
 @dataclass
@@ -31,11 +31,6 @@ def hmac_sha256(key: bytes, msg: str) -> bytes:
     return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
 
 
-def hmac_sha256_hex(key: bytes, msg: str) -> str:
-    """HMAC-SHA256 の16進文字列を返す。"""
-    return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).hexdigest()
-
-
 def extract_host(url: str) -> str:
     """URL からホスト名を抽出する。"""
     return urlparse(url).hostname or ""
@@ -47,7 +42,6 @@ def extract_path(url: str) -> str:
     AWS（S3 以外）は canonical URI でパスセグメントの二重エンコードを期待する。
     既にエンコード済みの %XX をさらにエンコードして %25XX にする。
     """
-    from urllib.parse import quote
     raw_path = urlparse(url).path
     if not raw_path:
         return "/"
@@ -130,7 +124,7 @@ def sign_request(
     k_signing = hmac_sha256(k_service, "aws4_request")
 
     # Step 5: 署名の計算と Authorization ヘッダー構築
-    signature = hmac_sha256_hex(k_signing, string_to_sign)
+    signature = hmac.new(k_signing, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
     headers["Authorization"] = (
         f"AWS4-HMAC-SHA256 "
         f"Credential={credentials.access_key_id}/{credential_scope}, "

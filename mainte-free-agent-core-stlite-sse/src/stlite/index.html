@@ -10,26 +10,28 @@
   <div id="root"></div>
   <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.73.0/build/stlite.js"></script>
   <script>
-    const cookies = document.cookie;
-    const cookieObj = {};
-    cookies.split(";").forEach(c => {
-      const [k, ...v] = c.trim().split("=");
-      if (k) cookieObj[k.trim()] = v.join("=");
-    });
-
     async function loadAndMount() {
-      // S3 上のパス → stlite ファイルシステム上のパス
-      const fileMap = {
-        "app.py": "app.py",
-        "__init__.py": "stlite/__init__.py",
-        "cookie_parser.py": "stlite/cookie_parser.py",
-        "sigv4.py": "stlite/sigv4.py",
-        "credentials.py": "stlite/credentials.py",
-        "sse_handler.py": "stlite/sse_handler.py",
-      };
+      // Cookie を JSON としてマウント（Pyodide から document.cookie にアクセスできないため）
+      const cookieObj = {};
+      document.cookie.split(";").forEach(c => {
+        const [k, ...v] = c.trim().split("=");
+        if (k) cookieObj[k.trim()] = v.join("=");
+      });
+
+      const files_to_fetch = [
+        "app.py",
+        "__init__.py",
+        "config.py",
+        "cookie_parser.py",
+        "sigv4.py",
+        "credentials.py",
+        "sse_handler.py",
+        "agent_client.py",
+      ];
       const files = { "runtime_cookies.json": JSON.stringify(cookieObj) };
-      for (const [s3Path, mountPath] of Object.entries(fileMap)) {
-        const resp = await fetch("./" + s3Path, { credentials: "same-origin" });
+      for (const filename of files_to_fetch) {
+        const mountPath = filename === "app.py" ? "app.py" : "stlite/" + filename;
+        const resp = await fetch("./" + filename, { credentials: "same-origin" });
         files[mountPath] = resp.ok ? await resp.text() : "";
       }
       stlite.mount({ entrypoint: "app.py", files });

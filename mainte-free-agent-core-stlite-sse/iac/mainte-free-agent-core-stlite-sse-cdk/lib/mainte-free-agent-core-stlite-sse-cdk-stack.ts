@@ -30,7 +30,7 @@ export class MainteFreeAgentCoreStliteSseCdkStack extends cdk.Stack {
       passwordPolicy: { minLength: 8, requireUppercase: true, requireDigits: true, requireSymbols: false },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
-    const userPoolDomain = userPool.addDomain('HostedUiDomain', {
+    userPool.addDomain('HostedUiDomain', {
       cognitoDomain: { domainPrefix: `stlite-agentcore-${cdk.Aws.ACCOUNT_ID}` },
     });
 
@@ -67,7 +67,7 @@ export class MainteFreeAgentCoreStliteSseCdkStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, '../lambda/auth'), {
         bundling: {
           image: lambda.Runtime.NODEJS_20_X.bundlingImage,
-          command: ['bash', '-c', 'cp -r /asset-input/. /asset-output/ && cd /asset-output && npm install --omit=dev'],
+          command: ['echo', 'Docker bundling not used'],
           local: {
             tryBundle(outputDir: string) {
               const fs = require('fs');
@@ -140,29 +140,10 @@ export class MainteFreeAgentCoreStliteSseCdkStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new cdk.CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
     new cdk.CfnOutput(this, 'IdentityPoolId', { value: identityPool.identityPoolId });
-    new cdk.CfnOutput(this, 'CloudFrontDomainName', { value: distribution.distributionDomainName });
     new cdk.CfnOutput(this, 'CloudFrontUrl', { value: `https://${distribution.distributionDomainName}` });
-    new cdk.CfnOutput(this, 'S3BucketName', { value: siteBucket.bucketName });
     new cdk.CfnOutput(this, 'Region', { value: this.region });
     new cdk.CfnOutput(this, 'AgentRuntimeArn', {
       value: (agentRuntime.node.defaultChild as cdk.CfnResource).getAtt('AgentRuntimeArn').toString(),
-    });
-
-    // Lambda@Edge config.json 用の設定値
-    new cdk.CfnOutput(this, 'LambdaEdgeConfigJson', {
-      value: cdk.Fn.join('', [
-        '{"region":"', this.region,
-        '","userPoolId":"', userPool.userPoolId,
-        '","userPoolAppId":"', userPoolClient.userPoolClientId,
-        '","userPoolDomain":"', userPoolDomain.domainName, '.auth.', this.region, '.amazoncognito.com"}',
-      ]),
-      description: 'lambda/auth/config.json に設定する値',
-    });
-
-    // User Pool Client の callbackUrls 設定用
-    new cdk.CfnOutput(this, 'CognitoCallbackUrl', {
-      value: `https://${distribution.distributionDomainName}`,
-      description: 'Cognito User Pool Client の callbackUrls / logoutUrls に設定する値',
     });
   }
 }
