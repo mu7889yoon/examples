@@ -1,26 +1,23 @@
 {
-  "name": "iac",
-  "version": "0.1.0",
-  "bin": {
-    "iac": "bin/iac.js"
-  },
+  "name": "php-wasm-edge-board-iac",
+  "version": "1.0.0",
+  "description": "CDK infrastructure for PHP-WASM 掲示板 on Lambda@Edge",
   "scripts": {
     "build": "tsc",
-    "watch": "tsc -w",
-    "test": "jest",
-    "cdk": "cdk"
-  },
-  "devDependencies": {
-    "@types/jest": "^30",
-    "@types/node": "^24.10.1",
-    "jest": "^30",
-    "ts-jest": "^29",
-    "aws-cdk": "2.1119.0",
-    "ts-node": "^10.9.2",
-    "typescript": "~5.9.3"
+    "cdk": "cdk",
+    "synth": "cdk synth",
+    "deploy": "cdk deploy --all --require-approval never"
   },
   "dependencies": {
-    "aws-cdk-lib": "^2.248.0",
-    "constructs": "^10.5.0"
+    "aws-cdk-lib": "^2.170.0",
+    "constructs": "^10.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/source-map-support": "^0.5.10",
+    "aws-cdk": "^2.170.0",
+    "source-map-support": "^0.5.21",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
   }
 }
