@@ -9,7 +9,7 @@ async function main() {
     entryPoints: ['handler.ts'],
     bundle: true,
     platform: 'node',
-    target: 'node18',
+    target: 'node22',
     format: 'esm',
     outfile: 'dist/handler.mjs',
     external: [

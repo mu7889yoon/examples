@@ -45,7 +45,7 @@ const PHP_FILES = [
  * CDK デプロイ後に実際のエンドポイントに置き換える。
  */
 const DSQL_CONFIG = {
-  endpoint: process.env.DSQL_ENDPOINT || 'your-cluster.dsql.us-east-1.on.aws',
+  endpoint: process.env.DSQL_ENDPOINT || 'tztxms3h2t3skczngb4wtu2s2m.dsql.us-east-1.on.aws',
   region: 'us-east-1',
   database: 'postgres',
 };

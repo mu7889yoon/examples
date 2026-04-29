@@ -37,7 +37,7 @@ export class PhpWasmEdgeBoardStack extends cdk.Stack {
     // IMPORTANT: Must use Code.fromAsset with pre-built dist directory
     // The dist directory contains handler.mjs + php/ files + node_modules for external deps
     const edgeFn = new cloudfront.experimental.EdgeFunction(this, 'EdgeHandler', {
-      runtime: lambda.Runtime.NODEJS_18_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'handler.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../src/dist')),
       timeout: cdk.Duration.seconds(30),
