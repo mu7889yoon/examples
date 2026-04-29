@@ -6,4 +6,5 @@
  */
 declare module '@php-wasm/universal' {
   export { PHP } from '@php-wasm/universal/lib/php';
+  export type { SupportedPHPVersion } from '@php-wasm/universal/lib/supported-php-versions';
 }
