@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+src/dist/
+
+# CDK
+iac/cdk.out/
+iac/.cdk.staging/
+iac/*.js
+iac/*.d.ts
+!iac/jest.config.js
+
+# OS
+.DS_Store
