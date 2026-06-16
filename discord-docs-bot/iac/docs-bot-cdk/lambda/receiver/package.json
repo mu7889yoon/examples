@@ -1,0 +1,10 @@
+{
+  "name": "docs-bot-receiver",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@aws-sdk/client-sfn": "^3.854.0",
+    "tweetnacl": "^1.0.3"
+  }
+}
+

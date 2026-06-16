@@ -1,0 +1,10 @@
+node_modules
+cdk.out
+dist
+coverage
+.env
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+docs/*.md
