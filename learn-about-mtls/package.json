@@ -5,7 +5,10 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "certs": "bash scripts/generate-certs.sh",
+    "deploy": "npm run certs && cdk deploy --profile yuta --require-approval never",
+    "destroy": "cdk destroy --profile yuta"
   },
   "devDependencies": {
     "@types/jest": "^30",
