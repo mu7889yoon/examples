@@ -1,0 +1,29 @@
+{
+  "name": "serverless-discord-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/discord-echo-bot.mjs && node --check src/microvm-runtime.mjs",
+    "check:all": "node --check src/discord-echo-bot.mjs && node --check src/microvm-runtime.mjs",
+    "microvm:venv": "python3 -m venv .venv && .venv/bin/pip install -r requirements.txt",
+    "cdk:prepare": "python3 scripts/prepare_cdk_microvm.py",
+    "cdk:synth": "cdk synth",
+    "cdk:deploy": "cdk deploy --require-approval never",
+    "cdk:run": ".venv/bin/python scripts/run_cdk_microvm.py",
+    "cdk:terminate": ".venv/bin/python scripts/terminate_cdk_microvm.py",
+    "package:microvm": "zip -r -FS microvm-artifact.zip Dockerfile package.json package-lock.json src",
+    "start:microvm": "node src/microvm-runtime.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "aws-cdk": "^2.1128.1",
+    "aws-cdk-lib": "^2.260.0",
+    "constructs": "^10.6.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
