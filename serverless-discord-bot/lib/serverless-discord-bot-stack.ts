@@ -11,7 +11,6 @@ import { execSync } from 'child_process';
 import * as path from 'path';
 
 import {
-  PROJECT_ROOT,
   INTERACTION_BOT_PATH,
   MICROVM_SOURCE_PATH,
   IMAGE_NAME,
@@ -47,16 +46,13 @@ export class ServerlessDiscordBotStack extends Stack {
 
     const dotenv = loadDotEnv();
 
-    const baseImageArn =
-      `arn:${this.partition}:lambda:${this.region}:aws:microvm-image:al2023-1`;
-    const internetEgressConnector =
-      `arn:${this.partition}:lambda:${this.region}:aws:network-connector:aws-network-connector:INTERNET_EGRESS`;
+    const baseImageArn = `arn:${this.partition}:lambda:${this.region}:aws:microvm-image:al2023-1`;
+    const internetEgressConnector = `arn:${this.partition}:lambda:${this.region}:aws:network-connector:aws-network-connector:INTERNET_EGRESS`;
 
     const artifact = new assets.Asset(this, 'MicrovmArtifact', {
       path: MICROVM_SOURCE_PATH,
       bundling: {
         local: new MicrovmArtifactBundle(MICROVM_SOURCE_PATH),
-        // Docker fallback（CI 等で zip がない環境向け）
         image: cdk.DockerImage.fromRegistry('alpine'),
         entrypoint: ['/bin/sh', '-c'],
         command: [
@@ -71,7 +67,7 @@ export class ServerlessDiscordBotStack extends Stack {
     // --- Log Group ---
     const logGroup = new logs.CfnLogGroup(this, 'MicrovmLogGroup', {
       logGroupName: LOG_GROUP_NAME,
-      retentionInDays: 14,
+      retentionInDays: 7,
     });
 
     // --- Build Role ---
@@ -188,12 +184,12 @@ export class ServerlessDiscordBotStack extends Stack {
     const discordBotToken = process.env.DISCORD_BOT_TOKEN ?? dotenv.DISCORD_BOT_TOKEN ?? '';
 
     const interactionsLambda = new lambda.Function(this, 'InteractionsLambda', {
-      runtime: lambda.Runtime.PYTHON_3_12,
+      runtime: lambda.Runtime.PYTHON_3_14,
       architecture: lambda.Architecture.ARM_64,
       handler: 'handler.lambda_handler',
       code: lambda.Code.fromAsset(INTERACTION_BOT_PATH, {
         bundling: {
-          image: lambda.Runtime.PYTHON_3_12.bundlingImage,
+          image: lambda.Runtime.PYTHON_3_14.bundlingImage,
           command: [
             'bash', '-c',
             'pip install -r requirements.txt -t /asset-output && cp -au . /asset-output',
@@ -240,22 +236,10 @@ export class ServerlessDiscordBotStack extends Stack {
       ),
     });
 
-    // --- Outputs ---
-    // new CfnOutput(this, 'ArtifactUri', { value: artifactUri });
-    // new CfnOutput(this, 'MicrovmImageArn', { value: microvmImage.getAtt('ImageArn').toString() });
-    // new CfnOutput(this, 'MicrovmImageName', { value: IMAGE_NAME });
-    // new CfnOutput(this, 'LatestActiveImageVersion', {
-    //   value: microvmImage.getAtt('LatestActiveImageVersion').toString(),
-    // });
-    // new CfnOutput(this, 'ExecutionRoleArn', { value: executionRole.attrArn });
-    // new CfnOutput(this, 'LogGroupName', { value: LOG_GROUP_NAME });
     new CfnOutput(this, 'InteractionsEndpointUrl', {
       value: httpApi.apiEndpoint,
       description: 'Discord Interactions Endpoint URL',
     });
-    // new CfnOutput(this, 'InteractionsLambdaArn', {
-    //   value: interactionsLambda.functionArn,
-    // });
   }
 
   private lambdaTrustPolicy() {
