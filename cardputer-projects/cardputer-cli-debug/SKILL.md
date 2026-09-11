@@ -25,6 +25,7 @@ UIFlow2 MicroPython がすでに動作している場合、アプリの更新は
 - 既成 `.bin` を直接書き込む、フラッシュを検査・退避する: [esptool 手順](references/flashing.md#esptool) を読む。
 - Arduino スケッチを CLI だけでコンパイル・アップロードする: [Arduino CLI 手順](references/flashing.md#arduino-cli) を読む。
 - UIFlow2 MicroPython のスクリプトを直接転送・実行する: [MicroPython 直接プッシュ手順](references/flashing.md#uiflow2-micropython-直接プッシュ) を読む。
+- 公式 User Demo と UIFlow2 を切り替える: [ファームウェア切り替え手順](references/switching.md) を読む。
 
 フラッシュアドレスは推測しない。ESP-IDF は `idf.py flash`、PlatformIO は `pio run -t upload` に任せ、`esptool` へ直接渡す場合はビルドシステムが生成した書き込み引数または配布元の指示を根拠にする。
 
@@ -36,6 +37,7 @@ UIFlow2 MicroPython がすでに動作している場合、アプリの更新は
 - アプリのクラッシュは 115200 baud のログを保存し、PlatformIO の `esp32_exception_decoder` または ESP-IDF の monitor で解析する。
 - MicroPython は `mpremote run` の traceback、`M5` / `hardware` モジュールの有無、対象ファイルの配置、UIFlow の起動方式を順に確認する。
 - `erase-flash` はデータを消去するため、必要性と対象を確認してから実行する。通常の再書き込みでは使わない。
+- User Demo から UIFlow2、または UIFlow2 から User Demo へ切り替える場合は、対象モデルを確認し、切り替え前に必要な `/flash/` のファイルを退避する。ファームウェアの再書き込み後も以前のアプリが残るとは限らない。
 
 詳細な診断表は [debugging.md](references/debugging.md)、CLI の使い分けとコマンド例は [flashing.md](references/flashing.md) を読む。
 
