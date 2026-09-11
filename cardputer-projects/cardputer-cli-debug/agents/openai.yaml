@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cardputer CLI Debug"
+  short_description: "Cardputer の CLI 書き込み・シリアル監視・デバッグ"
+  default_prompt: "Use $cardputer-cli-debug to diagnose and flash my Cardputer from the command line."
