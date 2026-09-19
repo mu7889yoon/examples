@@ -114,6 +114,11 @@ function App() {
   const ipponEventRef = useRef(false)
   const laughedJudgeIdsRef = useRef(new Set<string>())
 
+  const dismissIppon = useCallback(() => {
+    setIppon(false)
+    setLaughPulse(0)
+  }, [])
+
   const clearPolling = useCallback(() => {
     if (pollRef.current !== undefined) window.clearTimeout(pollRef.current)
     pollRef.current = undefined
@@ -343,7 +348,7 @@ function App() {
             <aside className="judges-card"><div className="card-title"><div><span className="live-dot" />AI審査員</div><strong>{judges.length}<small> / {session.judgeCount ?? '—'}</small></strong></div><div className="threshold">{session.requiredLaughCount ? `${session.requiredLaughCount}人以上が笑えば IPPON` : '判定結果を待っています'}</div><div className="judge-list">{judges.length === 0 && <div className="empty-state">回答を送信すると<br />審査員の判定が表示されます</div>}{judges.map((result) => <div className={`judge-row ${result.laughed ? 'laughed' : ''}`} key={result.id}><span className="judge-avatar">{result.name?.slice(0, 1) ?? '審'}</span><div className="judge-name"><strong>{result.name ?? result.id}</strong><span>{result.laughed ? '笑った！' : '笑わない'}</span></div><div className="probability">{Math.round(result.probability * 100)}%</div><span className="result-icon">{result.laughed ? '😂' : '—'}</span></div>)}</div></aside>
           </div>
           {laughPulse > 0 && <div className="laugh-bars" key={laughPulse} style={{ '--laugh-depth': laughDepth } as React.CSSProperties} aria-hidden="true"><span className="laugh-bar top" /><span className="laugh-bar right" /><span className="laugh-bar bottom" /><span className="laugh-bar left" /></div>}
-          {ippon && <div className="ippon-overlay" role="status"><div className="burst">🎉</div><div className="ippon-label">IPPON!</div><p>おめでとうございます！</p><button className="ghost-button" onClick={() => setIppon(false)}>結果を見る</button></div>}
+          {ippon && <div className="ippon-overlay" role="status"><div className="burst">🎉</div><div className="ippon-label">IPPON!</div><p>おめでとうございます！</p><button type="button" className="primary-button ippon-close" onClick={dismissIppon} aria-label="IPPON演出を閉じる">閉じる</button></div>}
           {score !== null && <div className="score-note">今回のスコア: <strong>{score.toFixed(2)}</strong></div>}
         </section>
       )}
