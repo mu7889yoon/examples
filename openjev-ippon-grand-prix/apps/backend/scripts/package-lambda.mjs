@@ -1,5 +1,5 @@
 import { build } from 'esbuild';
-import { cpSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
@@ -34,7 +34,13 @@ await build({
 // Lambda runtime's bundled SDK and includes the MicroVM client explicitly.
 // Install production dependencies only: copying the source node_modules tree
 // would also put esbuild, TypeScript and Vitest into each Lambda artifact.
-cpSync(resolve(import.meta.dirname, '../package.json'), resolve(staging, 'package.json'));
+const sourcePackage = resolve(import.meta.dirname, '../package.json');
+const stagedPackage = resolve(staging, 'package.json');
+const packageManifest = JSON.parse(readFileSync(sourcePackage, 'utf8'));
+// esbuild emits index.js as CommonJS. Omitting this package-level setting keeps
+// Node.js from treating that handler as an ES module inside the Lambda ZIP.
+delete packageManifest.type;
+writeFileSync(stagedPackage, `${JSON.stringify(packageManifest, null, 2)}\n`);
 cpSync(resolve(import.meta.dirname, '../package-lock.json'), resolve(staging, 'package-lock.json'));
 execFileSync('npm', ['ci', '--omit=dev', '--ignore-scripts'], { cwd: staging, stdio: 'inherit' });
 execFileSync('zip', ['-q', '-r', archive, '.'], { cwd: staging });
