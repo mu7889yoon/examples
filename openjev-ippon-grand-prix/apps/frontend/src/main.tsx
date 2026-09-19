@@ -102,6 +102,8 @@ function App() {
   const [topic, setTopic] = useState('')
   const [answer, setAnswer] = useState('')
   const [judges, setJudges] = useState<JudgeResult[]>([])
+  const [laughCount, setLaughCount] = useState(0)
+  const [laughPulse, setLaughPulse] = useState(0)
   const [ippon, setIppon] = useState(false)
   const [score, setScore] = useState<number | null>(null)
   const [isJudging, setIsJudging] = useState(false)
@@ -110,6 +112,7 @@ function App() {
   const abortRef = useRef<AbortController | null>(null)
   const pollRef = useRef<number | undefined>(undefined)
   const ipponEventRef = useRef(false)
+  const laughedJudgeIdsRef = useRef(new Set<string>())
 
   const clearPolling = useCallback(() => {
     if (pollRef.current !== undefined) window.clearTimeout(pollRef.current)
@@ -177,6 +180,9 @@ function App() {
       const created = updateSession(await readJson<Record<string, unknown>>(response))
       if (!created.sessionId) throw new Error('sessionId がレスポンスにありません')
       setJudges([])
+      setLaughCount(0)
+      setLaughPulse(0)
+      laughedJudgeIdsRef.current.clear()
       setIppon(false)
       ipponEventRef.current = false
       setScore(null)
@@ -206,6 +212,11 @@ function App() {
     }
     if (event.type === 'judge') {
       setJudges((previous) => [...previous.filter((item) => item.id !== event.data.id), event.data])
+      if (typeof event.data.laughCount === 'number') setLaughCount(event.data.laughCount)
+      if (event.data.laughed && !laughedJudgeIdsRef.current.has(event.data.id)) {
+        laughedJudgeIdsRef.current.add(event.data.id)
+        setLaughPulse((previous) => previous + 1)
+      }
       return
     }
     if (event.type === 'ippon') {
@@ -226,6 +237,9 @@ function App() {
     if (!session || !topic.trim() || !answer.trim() || isJudging) return
     setError(null)
     setJudges([])
+    setLaughCount(0)
+    setLaughPulse(0)
+    laughedJudgeIdsRef.current.clear()
     setIppon(false)
     ipponEventRef.current = false
     setScore(null)
@@ -284,12 +298,18 @@ function App() {
     setTopic('')
     setAnswer('')
     setJudges([])
+    setLaughCount(0)
+    setLaughPulse(0)
+    laughedJudgeIdsRef.current.clear()
     setIppon(false)
     ipponEventRef.current = false
     setScore(null)
     setError(null)
     setScreen('welcome')
   }
+
+  const laughProgress = session?.judgeCount ? Math.min(1, laughCount / session.judgeCount) : 0
+  const laughDepth = `${Math.round(12 + laughProgress * 82)}px`
 
   return (
     <main className="page-shell">
@@ -321,6 +341,7 @@ function App() {
             <form className="question-card" onSubmit={judge}><label htmlFor="topic">お題</label><textarea id="topic" value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="例：こんなAWSは嫌だ。どんなAWS？" rows={3} /><label htmlFor="answer">あなたの回答</label><textarea id="answer" value={answer} onChange={(event) => setAnswer(event.target.value)} placeholder="回答を入力してください" rows={5} /><button className="primary-button" disabled={isJudging || !topic.trim() || !answer.trim()}>{isJudging ? '審査中…' : '判定！'} <span>→</span></button></form>
             <aside className="judges-card"><div className="card-title"><div><span className="live-dot" />AI審査員</div><strong>{judges.length}<small> / {session.judgeCount ?? '—'}</small></strong></div><div className="threshold">{session.requiredLaughCount ? `${session.requiredLaughCount}人以上が笑えば IPPON` : '判定結果を待っています'}</div><div className="judge-list">{judges.length === 0 && <div className="empty-state">回答を送信すると<br />審査員の判定が表示されます</div>}{judges.map((result) => <div className={`judge-row ${result.laughed ? 'laughed' : ''}`} key={result.id}><span className="judge-avatar">{result.name?.slice(0, 1) ?? '審'}</span><div className="judge-name"><strong>{result.name ?? result.id}</strong><span>{result.laughed ? '笑った！' : '笑わない'}</span></div><div className="probability">{Math.round(result.probability * 100)}%</div><span className="result-icon">{result.laughed ? '😂' : '—'}</span></div>)}</div></aside>
           </div>
+          {laughPulse > 0 && <div className="laugh-bars" key={laughPulse} style={{ '--laugh-depth': laughDepth } as React.CSSProperties} aria-hidden="true"><span className="laugh-bar top" /><span className="laugh-bar right" /><span className="laugh-bar bottom" /><span className="laugh-bar left" /></div>}
           {ippon && <div className="ippon-overlay" role="status"><div className="burst">🎉</div><div className="ippon-label">IPPON!</div><p>おめでとうございます！</p><button className="ghost-button" onClick={() => setIppon(false)}>結果を見る</button></div>}
           {score !== null && <div className="score-note">今回のスコア: <strong>{score.toFixed(2)}</strong></div>}
         </section>
