@@ -4,25 +4,25 @@
     "durationSeconds": 3600
   },
   "model": {
-    "name": "Qwen3-0.6B",
+    "name": "Qwen3.5-4B",
     "backend": "llama.cpp",
-    "source": "Qwen/Qwen3-0.6B-GGUF",
-    "revision": "23749fefcc72300e3a2ad315e1317431b06b590a",
-    "ggufFile": "Qwen3-0.6B-Q8_0.gguf",
-    "expectedBytes": 639446688,
-    "sha256": "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031",
+    "source": "bartowski/Qwen_Qwen3.5-4B-GGUF",
+    "revision": "4168f45a16a1290d65a4ec0fa312ae917a4c15d6",
+    "ggufFile": "Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+    "expectedBytes": 3013027808,
+    "sha256": "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
     "llamaServerUrl": "http://127.0.0.1:8081",
     "optionTokenIds": [32, 33]
   },
   "state": {
     "system": "あなたは大喜利大会の観客です。",
     "language": "ja",
-    "context": "回答を実際に聞いた観客として自然に笑うかどうかを判定してください。"
+    "context": "回答を実際に聞いた観客として、簡単には笑わず、意外性・切れ味・お題への適合がある場合だけ自然に笑うかどうかを判定してください。"
   },
   "decision": {
     "question": "この回答を聞いて、あなたは笑いますか？",
     "options": ["笑う", "笑わない"],
-    "laughProbabilityThreshold": 0.5
+    "laughProbabilityThreshold": 0.7
   },
   "scoring": {
     "ipponThresholdRatio": 0.5,

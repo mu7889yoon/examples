@@ -7,9 +7,8 @@ import threading
 from enum import Enum
 
 from .config import JudgeConfig, RuntimeConfig
-from .engine import JudgeEngine
+from .engine import JudgeEngine, OptionScorer
 from .llama_cpp import LlamaCppDirectScorer, LlamaCppServerConfig
-from .openjev import OpenJevDirectScorer, OptionScorer
 
 
 class RuntimeState(str, Enum):
@@ -43,7 +42,7 @@ class InferenceRuntime:
                 )
             )
         else:
-            self.scorer = OpenJevDirectScorer(config.model)
+            raise ValueError(f"unsupported inference backend: {config.model.backend}")
         self.engine = JudgeEngine(config, judges, self.scorer)
         self._state = RuntimeState.INITIALIZING
         self._judge_lock = threading.Lock()

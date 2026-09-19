@@ -109,6 +109,7 @@ function App() {
   const [now, setNow] = useState(() => Date.now())
   const abortRef = useRef<AbortController | null>(null)
   const pollRef = useRef<number | undefined>(undefined)
+  const ipponEventRef = useRef(false)
 
   const clearPolling = useCallback(() => {
     if (pollRef.current !== undefined) window.clearTimeout(pollRef.current)
@@ -177,6 +178,7 @@ function App() {
       if (!created.sessionId) throw new Error('sessionId がレスポンスにありません')
       setJudges([])
       setIppon(false)
+      ipponEventRef.current = false
       setScore(null)
       await pollStatus(created.sessionId)
     } catch (cause) {
@@ -207,11 +209,16 @@ function App() {
       return
     }
     if (event.type === 'ippon') {
+      if (ipponEventRef.current) return
+      ipponEventRef.current = true
       setIppon(true)
       return
     }
     setScore(typeof event.data.score === 'number' ? event.data.score : null)
-    if (event.data.ippon) setIppon(true)
+    if (event.data.ippon && !ipponEventRef.current) {
+      ipponEventRef.current = true
+      setIppon(true)
+    }
   }
 
   const judge = async (submitEvent: React.FormEvent) => {
@@ -220,6 +227,7 @@ function App() {
     setError(null)
     setJudges([])
     setIppon(false)
+    ipponEventRef.current = false
     setScore(null)
     setIsJudging(true)
     const controller = new AbortController()
@@ -277,6 +285,7 @@ function App() {
     setAnswer('')
     setJudges([])
     setIppon(false)
+    ipponEventRef.current = false
     setScore(null)
     setError(null)
     setScreen('welcome')

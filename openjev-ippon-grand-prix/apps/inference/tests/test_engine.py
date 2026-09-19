@@ -14,13 +14,13 @@ from ippon_inference.config import (
 from ippon_inference.engine import JudgeEngine
 
 
-def config(*, ratio: float = 0.5) -> RuntimeConfig:
+def config(*, ratio: float = 0.5, threshold: float = 0.5) -> RuntimeConfig:
     return RuntimeConfig(
         version=1,
         duration_seconds=3600,
         model=ModelConfig("fake", "local-model", "local-manifest"),
         state=StateConfig("system", "ja", "context"),
-        decision=DecisionConfig("笑いますか？", "笑う", "笑わない", 0.5),
+        decision=DecisionConfig("笑いますか？", "笑う", "笑わない", threshold),
         scoring=ScoringConfig(ratio, 3),
     )
 
@@ -58,6 +58,25 @@ class JudgeEngineTests(unittest.IsolatedAsyncioTestCase):
         events = [event async for event in engine.events("お題", "回答")]
         self.assertEqual([event["event"] for event in events], ["start", "judge", "ippon", "complete"])
         self.assertEqual(events[2]["data"]["requiredLaughCount"], 0)
+
+    async def test_all_judges_laugh_emits_one_ippon(self) -> None:
+        judges = tuple(JudgeConfig(f"judge-{number:03d}", str(number), "persona") for number in range(1, 4))
+        engine = JudgeEngine(config(), judges, FakeScorer({judge.id: 0.9 for judge in judges}))
+
+        events = [event async for event in engine.events("お題", "回答")]
+
+        self.assertEqual(sum(event["event"] == "ippon" for event in events), 1)
+        self.assertEqual(events[-1]["data"]["laughCount"], 3)
+
+    async def test_strict_threshold_rejects_borderline_laugh(self) -> None:
+        judges = (JudgeConfig("judge-001", "one", "persona"),)
+        engine = JudgeEngine(config(ratio=1, threshold=0.7), judges, FakeScorer({"judge-001": 0.69}))
+
+        events = [event async for event in engine.events("お題", "回答")]
+
+        judge_event = next(event for event in events if event["event"] == "judge")
+        self.assertFalse(judge_event["data"]["laughed"])
+        self.assertFalse(events[-1]["data"]["ippon"])
 
 
 if __name__ == "__main__":

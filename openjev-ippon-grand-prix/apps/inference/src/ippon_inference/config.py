@@ -18,7 +18,7 @@ class ModelConfig:
     source: str
     revision: str
     path: str | None = None
-    backend: str = "openjev-transformers"
+    backend: str = "llama.cpp"
     llama_server_url: str | None = None
     option_token_ids: tuple[int, ...] = ()
     gguf_file: str | None = None
@@ -133,22 +133,21 @@ def load_runtime_config(path: str | Path) -> RuntimeConfig:
     # so a MicroVM never starts with a floating model version.
     if not Path(source).exists() and (len(revision) != 40 or any(c not in "0123456789abcdef" for c in revision)):
         raise ConfigError("model.revision must be a 40-character lowercase commit SHA for remote sources")
-    backend = model.get("backend", "openjev-transformers")
-    if backend not in {"openjev-transformers", "llama.cpp"}:
-        raise ConfigError("model.backend must be openjev-transformers or llama.cpp")
+    backend = model.get("backend", "llama.cpp")
+    if backend != "llama.cpp":
+        raise ConfigError("model.backend must be llama.cpp")
     llama_server_url: str | None = None
     option_token_ids: tuple[int, ...] = ()
     gguf_file: str | None = None
     expected_bytes: int | None = None
     sha256: str | None = None
-    if backend == "llama.cpp":
-        llama_server_url = _string(model.get("llamaServerUrl"), "model.llamaServerUrl")
-        option_token_ids = _token_ids(model.get("optionTokenIds"), "model.optionTokenIds")
-        gguf_file = _string(model.get("ggufFile"), "model.ggufFile")
-        expected_bytes = _positive_int(model.get("expectedBytes"), "model.expectedBytes")
-        sha256 = _string(model.get("sha256"), "model.sha256")
-        if len(sha256) != 64 or any(c not in "0123456789abcdef" for c in sha256):
-            raise ConfigError("model.sha256 must be a 64-character lowercase SHA-256 digest")
+    llama_server_url = _string(model.get("llamaServerUrl"), "model.llamaServerUrl")
+    option_token_ids = _token_ids(model.get("optionTokenIds"), "model.optionTokenIds")
+    gguf_file = _string(model.get("ggufFile"), "model.ggufFile")
+    expected_bytes = _positive_int(model.get("expectedBytes"), "model.expectedBytes")
+    sha256 = _string(model.get("sha256"), "model.sha256")
+    if len(sha256) != 64 or any(c not in "0123456789abcdef" for c in sha256):
+        raise ConfigError("model.sha256 must be a 64-character lowercase SHA-256 digest")
     version = _positive_int(data.get("version"), "version")
     return RuntimeConfig(
         version=version,

@@ -9,7 +9,7 @@ locals {
   microvm_image_name    = substr(replace("${local.name_prefix}-${local.generated_suffix}", "/[^A-Za-z0-9-_]/", "-"), 0, 64)
   base_image_arn        = var.microvm_base_image_arn != "" ? var.microvm_base_image_arn : "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:aws:microvm-image:al2023-1"
   microvm_artifact_uri  = "s3://${data.aws_s3_bucket.artifacts.bucket}/${data.aws_s3_object.microvm.key}"
-  microvm_image_log_arn = "${aws_cloudwatch_log_group.microvm.name}:*"
+  microvm_image_log_arn = "${aws_cloudwatch_log_group.microvm.arn}:*"
   # Vite copies a local development placeholder for this file. The separately
   # managed object below must own the production version with the API URL.
   frontend_dist_files = setsubtract(
@@ -195,14 +195,16 @@ data "aws_iam_policy_document" "controller" {
     resources = [aws_cloudformation_stack.microvm_image.outputs["ImageArn"]]
   }
 
+  # Lambda MicroVM instance actions do not support instance-level resource ARNs.
+  # These actions therefore require the account-wide resource wildcard.
   statement {
-    sid    = "InspectAndTerminateProjectMicrovms"
+    sid    = "InspectAndTerminateMicrovms"
     effect = "Allow"
     actions = [
       "lambda:GetMicrovm",
       "lambda:TerminateMicrovm",
     ]
-    resources = ["arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:microvm:*"]
+    resources = ["*"]
   }
 
   statement {
@@ -210,6 +212,18 @@ data "aws_iam_policy_document" "controller" {
     effect    = "Allow"
     actions   = ["iam:PassRole"]
     resources = [aws_iam_role.microvm_runtime.arn]
+  }
+
+  # RunMicrovm attaches AWS-managed ingress and egress connectors to the
+  # transient MicroVM. Restrict this pass permission to those two connectors.
+  statement {
+    sid     = "PassManagedMicrovmNetworkConnectors"
+    effect  = "Allow"
+    actions = ["lambda:PassNetworkConnector"]
+    resources = [
+      "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:aws:network-connector:aws-network-connector:HTTP_INGRESS",
+      "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:aws:network-connector:aws-network-connector:INTERNET_EGRESS",
+    ]
   }
 }
 
@@ -231,11 +245,12 @@ data "aws_iam_policy_document" "streaming_proxy" {
     resources = [aws_dynamodb_table.sessions.arn]
   }
 
+  # MicroVM instance actions do not support instance-level resource ARNs.
   statement {
-    sid       = "CreateShortLivedMicrovmAuthToken"
+    sid       = "InspectAndCreateMicrovmAuthToken"
     effect    = "Allow"
-    actions   = ["lambda:CreateMicrovmAuthToken"]
-    resources = ["arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:${data.aws_caller_identity.current.account_id}:microvm:*"]
+    actions   = ["lambda:CreateMicrovmAuthToken", "lambda:GetMicrovm"]
+    resources = ["*"]
   }
 }
 
@@ -387,7 +402,10 @@ resource "aws_lambda_function" "streaming_proxy" {
 
   environment {
     variables = {
-      SESSION_TABLE_NAME = aws_dynamodb_table.sessions.name
+      MICROVM_IMAGE_IDENTIFIER = aws_cloudformation_stack.microvm_image.outputs["ImageArn"]
+      MICROVM_RUNTIME_ROLE_ARN = aws_iam_role.microvm_runtime.arn
+      SESSION_DURATION_SECONDS = "3600"
+      SESSION_TABLE_NAME       = aws_dynamodb_table.sessions.name
     }
   }
 
@@ -485,9 +503,12 @@ resource "aws_api_gateway_integration" "judge" {
   http_method             = aws_api_gateway_method.judge.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = aws_lambda_function.streaming_proxy.invoke_arn
-  response_transfer_mode  = "STREAM"
-  timeout_milliseconds    = 900000
+  # API Gateway invokes response-streaming Lambda integrations through the
+  # dedicated 2021-11-15 response-streaming endpoint, not the standard
+  # Lambda invoke ARN used by buffered proxy integrations.
+  uri                    = "arn:${data.aws_partition.current.partition}:apigateway:${var.aws_region}:lambda:path/2021-11-15/functions/${aws_lambda_function.streaming_proxy.arn}/response-streaming-invocations"
+  response_transfer_mode = "STREAM"
+  timeout_milliseconds   = 900000
 }
 
 resource "aws_lambda_permission" "api_controller" {

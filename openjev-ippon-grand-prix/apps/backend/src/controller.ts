@@ -63,25 +63,48 @@ export async function handle(event: APIGatewayProxyEvent, deps = dependenciesFac
   }
 }
 
+type LambdaResponseStream = {
+  setContentType?: (value: string) => void;
+  write: (chunk: string | Uint8Array) => void;
+  end: () => void;
+};
+
+type LambdaStreamingRuntime = {
+  awslambda?: {
+    streamifyResponse?: (fn: Function) => unknown;
+    HttpResponseStream?: {
+      from: (stream: LambdaResponseStream, metadata: { statusCode: number; headers: Record<string, string> }) => LambdaResponseStream;
+    };
+  };
+};
+
+const lambdaStreamingRuntime = globalThis as unknown as LambdaStreamingRuntime;
+
 /** Lambda response-streaming entrypoint. API Gateway must be configured for response streaming. */
-export const streamingHandler = typeof (globalThis as { awslambda?: { streamifyResponse?: Function } }).awslambda?.streamifyResponse === 'function'
-  ? (globalThis as unknown as { awslambda: { streamifyResponse: (fn: Function) => unknown } }).awslambda.streamifyResponse(async (event: APIGatewayProxyEvent, responseStream: { setContentType?: (value: string) => void; write: (chunk: string | Uint8Array) => void; end: () => void }) => {
+export const streamingHandler = typeof lambdaStreamingRuntime.awslambda?.streamifyResponse === 'function'
+  && typeof lambdaStreamingRuntime.awslambda.HttpResponseStream?.from === 'function'
+  ? lambdaStreamingRuntime.awslambda.streamifyResponse(async (event: APIGatewayProxyEvent, responseStream: LambdaResponseStream) => {
+      // API Gateway response streaming requires the status/header metadata frame
+      // before the SSE payload. HttpResponseStream writes its required delimiter.
+      const output = lambdaStreamingRuntime.awslambda!.HttpResponseStream!.from(responseStream, {
+        statusCode: 200,
+        headers: sseHeaders(),
+      });
       const deps = dependenciesFactory();
       const path = event.path || '';
       if (event.httpMethod.toUpperCase() === 'POST' && path.match(/^\/sessions\/[^/]+\/judge$/)) {
         try {
           const sessionId = decodeURIComponent(path.split('/')[2]);
-          responseStream.setContentType?.('text/event-stream; charset=utf-8');
-          await proxyJudge(sessionId, event, deps, (chunk) => responseStream.write(chunk));
+          await proxyJudge(sessionId, event, deps, (chunk) => output.write(chunk));
         } catch (error) {
-          responseStream.write(`event: error\ndata: ${JSON.stringify(error instanceof ApiError ? { error: error.code, message: error.message } : { error: 'INTERNAL_ERROR' })}\n\n`);
-        } finally { responseStream.end(); }
+          console.error("Judge stream failed", { path, error });
+          output.write(`event: error\ndata: ${JSON.stringify(error instanceof ApiError ? { error: error.code, message: error.message } : { error: 'INTERNAL_ERROR' })}\n\n`);
+        } finally { output.end(); }
         return;
       }
       const result = await handle(event, deps);
-      if (typeof result !== 'string' && result.headers?.['content-type']) responseStream.setContentType?.(String(result.headers['content-type']));
-      if (typeof result !== 'string' && result.body) responseStream.write(result.isBase64Encoded ? Buffer.from(result.body, 'base64') : result.body);
-      responseStream.end();
+      if (typeof result !== 'string' && result.body) output.write(result.isBase64Encoded ? Buffer.from(result.body, 'base64') : result.body);
+      output.end();
     })
   : handler;
 
@@ -90,7 +113,7 @@ async function createSession(deps: ControllerDependencies): Promise<APIGatewayPr
   const record: SessionRecord = {
     sessionId: randomUUID(), state: 'STARTING', startedAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + deps.config.durationSeconds * 1000).toISOString(),
-    updatedAt: now.toISOString(), modelName: process.env.MODEL_NAME ?? 'Qwen3-0.6B',
+    updatedAt: now.toISOString(), modelName: process.env.MODEL_NAME ?? 'Qwen3.5-4B',
   };
   await deps.sessions.create(record);
   try {
@@ -122,7 +145,12 @@ async function refreshState(record: SessionRecord, deps: ControllerDependencies)
     if (vm.state === 'RUNNING' && record.state === 'STARTING') return await deps.sessions.updateState(record.sessionId, 'RUNNING', { endpoint: vm.endpoint }, 'STARTING');
     if (['TERMINATED', 'TERMINATING'].includes(vm.state)) return await deps.sessions.updateState(record.sessionId, 'ENDED', {}, record.state);
     if (vm.endpoint && vm.endpoint !== record.endpoint) return await deps.sessions.updateState(record.sessionId, record.state, { endpoint: vm.endpoint }, record.state);
-  } catch { /* GET remains useful while the provider is eventually consistent. */ }
+  } catch (error) {
+    // Preserve a useful session response while recording why the provider state
+    // could not be refreshed. This is essential for diagnosing IAM or service
+    // transition failures without hiding them behind STARTING indefinitely.
+    console.warn("Unable to refresh MicroVM state", { sessionId: record.sessionId, error });
+  }
   return (await deps.sessions.get(record.sessionId)) ?? record;
 }
 

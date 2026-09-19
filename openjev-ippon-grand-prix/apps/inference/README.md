@@ -9,7 +9,7 @@ OpenJev browser demoと同じ llama.cpp 系で、ARM64 CPU native `llama-server`
 
 `configs/config.json` の `model` は、モデルを差し替えるための唯一の入口です。
 `source` と `revision` はHugging Faceの40文字commitを指定します。初期値は
-Qwen3-0.6B の公式 Q8_0 GGUF です。`expectedBytes` と `sha256` は、そのcommitの
+Qwen3.5-4B の Q4_K_M GGUF です。`expectedBytes` と `sha256` は、そのcommitの
 GGUF LFS objectの固定値です。`optionTokenIds` はそのGGUF tokenizerにおける A/B のtoken
 IDで、Image build時に `/detokenize` で検証します。モデルを変える場合はGGUF名、
 固定revision、サイズ、SHA-256、A/B token IDを一緒に更新してください。
@@ -22,7 +22,7 @@ Runtimeはloopbackの `llama-server` だけに接続します。
 
 ## モデル取得・Artifact作成
 
-リポジトリルートで実行します。モデルは約610 MiBあり、`models/` と生成ZIPは
+リポジトリルートで実行します。モデルは約3.01 GiBあり、`models/` と生成ZIPは
 `.gitignore` 済みです。
 
 ```sh

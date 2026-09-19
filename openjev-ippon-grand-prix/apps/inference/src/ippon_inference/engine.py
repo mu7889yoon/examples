@@ -5,10 +5,13 @@ from __future__ import annotations
 import asyncio
 import math
 from collections.abc import AsyncIterator
-from typing import Any
+from typing import Any, Protocol
 
 from .config import JudgeConfig, RuntimeConfig
-from .openjev import OptionScorer
+
+
+class OptionScorer(Protocol):
+    def score(self, row: dict[str, Any]) -> list[float]: ...
 
 
 class JudgeEngine:
