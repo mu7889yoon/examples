@@ -42,5 +42,9 @@ const packageManifest = JSON.parse(readFileSync(sourcePackage, 'utf8'));
 delete packageManifest.type;
 writeFileSync(stagedPackage, `${JSON.stringify(packageManifest, null, 2)}\n`);
 cpSync(resolve(import.meta.dirname, '../package-lock.json'), resolve(staging, 'package-lock.json'));
+// OpenRouter judging reuses the canonical judge personas from the repository.
+// Keep them alongside the bundled handler so the Lambda artifact does not
+// depend on the source checkout at runtime.
+cpSync(resolve(import.meta.dirname, '../../../configs/judges'), resolve(staging, 'configs/judges'), { recursive: true });
 execFileSync('npm', ['ci', '--omit=dev', '--ignore-scripts'], { cwd: staging, stdio: 'inherit' });
 execFileSync('zip', ['-q', '-r', archive, '.'], { cwd: staging });

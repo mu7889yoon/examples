@@ -1,19 +1,39 @@
 import { randomUUID } from 'node:crypto';
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { loadConfig, type BackendConfig } from './config.js';
-import { ApiError, ConditionalCheckFailed, type MicroVmService, type SessionRecord, type SessionRepository, type RunMicrovmInput, type MicroVm } from './types.js';
+import { DEFAULT_OPENROUTER_JEV_MODEL, type OpenRouterNoulQuestions } from './openrouter.js';
+import { AwsOpenRouterJudgeService, type OpenRouterJudgeService } from './openrouter-service.js';
+import { loadJudgeDefinitions } from './judges.js';
+import { ApiError, ConditionalCheckFailed, type MicroVmService, type SessionRecord, type SessionRepository, type RunMicrovmInput } from './types.js';
 
 export interface ControllerDependencies {
   config: BackendConfig;
   sessions: SessionRepository;
   microvms: MicroVmService;
+  /** Required only for the OpenRouter provider; injectable for controller tests. */
+  openrouter?: OpenRouterJudgeService;
   fetchImpl?: typeof fetch;
   now?: () => Date;
+  sleep?: (milliseconds: number) => Promise<void>;
 }
 
 export function createDefaultDependencies(): ControllerDependencies {
   const config = loadConfig();
-  return { config, sessions: new LazyDynamoSessionRepository(config.tableName), microvms: new LazyMicroVmService() };
+  const dependencies: ControllerDependencies = {
+    config,
+    sessions: new LazyDynamoSessionRepository(config.tableName),
+    microvms: new LazyMicroVmService(),
+  };
+  // The session Lambda does not need the provider credential. Only create the
+  // client when this process actually has a key (the streaming proxy does).
+  if (provider(dependencies) === 'openrouter' && (config.openrouterApiKey || config.openrouterApiKeySecretArn)) {
+    dependencies.openrouter = new AwsOpenRouterJudgeService({
+      apiKey: config.openrouterApiKey,
+      apiKeySecretArn: config.openrouterApiKeySecretArn,
+      model: config.openrouterModel,
+    });
+  }
+  return dependencies;
 }
 
 // Keep AWS SDK modules out of cold-start/test imports. They are loaded only when a
@@ -113,9 +133,15 @@ async function createSession(deps: ControllerDependencies): Promise<APIGatewayPr
   const record: SessionRecord = {
     sessionId: randomUUID(), state: 'STARTING', startedAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + deps.config.durationSeconds * 1000).toISOString(),
-    updatedAt: now.toISOString(), modelName: process.env.MODEL_NAME ?? 'Qwen3-0.6B',
+    updatedAt: now.toISOString(), modelName: provider(deps) === 'openrouter'
+      ? deps.config.openrouterModel ?? DEFAULT_OPENROUTER_JEV_MODEL
+      : process.env.MODEL_NAME ?? 'Qwen3-0.6B',
   };
   await deps.sessions.create(record);
+  if (provider(deps) === 'openrouter') {
+    const updated = await deps.sessions.updateState(record.sessionId, 'RUNNING', {}, 'STARTING');
+    return json(201, publicSession(updated));
+  }
   try {
     const vm = await deps.microvms.run({
       imageIdentifier: deps.config.microvmImageIdentifier, imageVersion: deps.config.microvmImageVersion,
@@ -134,7 +160,7 @@ async function createSession(deps: ControllerDependencies): Promise<APIGatewayPr
 
 async function getSession(sessionId: string, deps: ControllerDependencies): Promise<APIGatewayProxyResult> {
   const record = await requireSession(sessionId, deps);
-  const current = await refreshState(record, deps);
+  const current = provider(deps) === 'microvm' ? await refreshState(record, deps) : record;
   return json(200, publicSession(current));
 }
 
@@ -158,6 +184,10 @@ async function deleteSession(sessionId: string, deps: ControllerDependencies): P
   let record = await requireSession(sessionId, deps);
   if (record.state === 'ENDED' || record.state === 'FAILED') return json(202, publicSession(record));
   record = await deps.sessions.updateState(sessionId, 'TERMINATING', {}, record.state);
+  if (provider(deps) === 'openrouter') {
+    const ended = await deps.sessions.updateState(sessionId, 'ENDED', {}, 'TERMINATING');
+    return json(202, publicSession(ended));
+  }
   if (record.microvmId) {
     try { await deps.microvms.terminate(record.microvmId); }
     catch (error) { await deps.sessions.updateState(sessionId, 'FAILED', { errorMessage: error instanceof Error ? error.message : 'MicroVM termination failed' }, 'TERMINATING').catch(() => undefined); throw error; }
@@ -183,6 +213,10 @@ async function proxyJudge(sessionId: string, event: APIGatewayProxyEvent, deps: 
   try { await deps.sessions.acquireJudge(sessionId, requestId); }
   catch (error) { if (error instanceof ConditionalCheckFailed) throw new ApiError(409, 'another judge is already running', 'BUSY'); throw error; }
   try {
+    if (provider(deps) === 'openrouter') {
+      await judgeWithOpenRouter(input, deps, onChunk);
+      return;
+    }
     if (!record.microvmId) throw new ApiError(503, 'MicroVM is not ready', 'NOT_READY');
     const vm = await deps.microvms.get(record.microvmId);
     if (!vm.endpoint || vm.state !== 'RUNNING') throw new ApiError(503, 'MicroVM is not ready', 'NOT_READY');
@@ -197,6 +231,79 @@ async function proxyJudge(sessionId: string, event: APIGatewayProxyEvent, deps: 
   } finally { await deps.sessions.releaseJudge(sessionId, requestId); }
 }
 
+const OPENROUTER_LAUGH_THRESHOLD = 0.7;
+const OPENROUTER_IPPON_RATIO = 0.5;
+const OPENROUTER_REVEAL_MIN_DELAY_MS = 200;
+const OPENROUTER_REVEAL_MAX_DELAY_MS = 3_000;
+
+async function judgeWithOpenRouter(input: { topic: string; answer: string }, deps: ControllerDependencies, onChunk: (chunk: string) => void): Promise<void> {
+  const client = deps.openrouter;
+  if (!client) throw new ApiError(503, 'OpenRouter is not configured', 'NOT_READY');
+  const judges = loadJudgeDefinitions();
+  const questions: OpenRouterNoulQuestions = Object.fromEntries(judges.map(({ id, persona }) => [id, {
+    type: 'noul' as const,
+    instructions: `Judge persona: ${persona}\n\nこの回答を聞いて、あなたは笑いますか？`,
+    criteria: { true: '笑う', false: '笑わない' },
+  }]));
+  const judgeCount = judges.length;
+  const threshold = validRatio(deps.config.laughProbabilityThreshold, OPENROUTER_LAUGH_THRESHOLD);
+  const ipponRatio = validRatio(deps.config.ipponThresholdRatio, OPENROUTER_IPPON_RATIO);
+  const requiredLaughCount = Math.ceil(judgeCount * ipponRatio);
+  onChunk(sseEvent('start', { judgeCount, requiredLaughCount, ipponThresholdRatio: ipponRatio }));
+  let decision;
+  try {
+    decision = await client.evaluateNouls({
+      system: 'あなたは大喜利大会の観客です。', language: 'ja',
+      context: '回答を実際に聞いた観客として、簡単には笑わず、意外性・切れ味・お題への適合がある場合だけ自然に笑うかどうかを判定してください。',
+      topic: input.topic, answer: input.answer,
+    }, questions);
+  } catch (error) {
+    console.error('OpenRouter judge request failed', { error });
+    throw new ApiError(502, 'OpenRouter judge request failed', 'OPENROUTER_ERROR');
+  }
+
+  let completedCount = 0;
+  let laughCount = 0;
+  let score = 0;
+  let ippon = false;
+  for (const { id, name } of judges) {
+    const probability = decision.answers[id]?.noul;
+    // The client validates the response, but keep the public stream safe if a
+    // compatible alternative implementation is injected.
+    if (typeof probability !== 'number' || !Number.isFinite(probability) || probability < 0 || probability > 1) {
+      throw new ApiError(502, `OpenRouter returned an invalid answer for ${id}`, 'OPENROUTER_ERROR');
+    }
+    completedCount += 1;
+    score += probability;
+    const laughed = probability >= threshold;
+    if (laughed) laughCount += 1;
+    await revealDelay(deps, completedCount, judgeCount);
+    onChunk(sseEvent('judge', { id, name, probability, laughed, completedCount, laughCount, judgeCount }));
+    if (!ippon && laughCount >= requiredLaughCount) {
+      ippon = true;
+      onChunk(sseEvent('ippon', { laughCount, requiredLaughCount, judgeCount }));
+    }
+  }
+  // Avoid exposing binary floating-point noise (for example 9.999999999999993)
+  // in the otherwise stable public SSE contract.
+  onChunk(sseEvent('complete', { laughCount, judgeCount, score: Number(score.toFixed(12)), ippon }));
+}
+
+async function revealDelay(deps: ControllerDependencies, completedCount: number, judgeCount: number): Promise<void> {
+  const sleep = deps.sleep ?? ((milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
+  const configured = Number(process.env.JUDGE_REVEAL_DELAY_MS);
+  if (Number.isFinite(configured) && configured >= 0) {
+    await sleep(configured);
+    return;
+  }
+  // Spread reveals across the requested 0.2–3.0 second range. A deterministic
+  // sequence keeps the POC reproducible while still feeling like a live panel.
+  const min = Number(process.env.JUDGE_REVEAL_MIN_DELAY_MS ?? OPENROUTER_REVEAL_MIN_DELAY_MS);
+  const max = Number(process.env.JUDGE_REVEAL_MAX_DELAY_MS ?? OPENROUTER_REVEAL_MAX_DELAY_MS);
+  const delay = Math.round(min + ((max - min) * (completedCount - 1)) / Math.max(1, judgeCount - 1));
+  if (delay > 0) await sleep(delay);
+}
+
 function parseJudgeInput(event: APIGatewayProxyEvent): { topic: string; answer: string } {
   let raw = event.body ?? '';
   if (event.isBase64Encoded) raw = Buffer.from(raw, 'base64').toString('utf8');
@@ -209,6 +316,9 @@ function parseJudgeInput(event: APIGatewayProxyEvent): { topic: string; answer: 
 }
 
 async function requireSession(id: string, deps: ControllerDependencies): Promise<SessionRecord> { const record = await deps.sessions.get(id); if (!record) throw new ApiError(404, 'session not found', 'NOT_FOUND'); return record; }
+function provider(deps: ControllerDependencies): 'microvm' | 'openrouter' { return deps.config.provider ?? 'microvm'; }
+function validRatio(value: number | undefined, fallback: number): number { return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1 ? value : fallback; }
+function sseEvent(event: string, data: unknown): string { return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`; }
 function publicSession(record: SessionRecord): Record<string, unknown> { return { sessionId: record.sessionId, state: record.state, startedAt: record.startedAt, expiresAt: record.expiresAt, modelName: record.modelName }; }
 function corsHeaders(): Record<string, string> {
   // The POC is deliberately unauthenticated. Lock this down to the CloudFront
