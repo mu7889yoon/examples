@@ -3,13 +3,14 @@ data "aws_partition" "current" {}
 data "aws_caller_identity" "current" {}
 
 locals {
-  name_prefix           = "${var.project_name}-${var.environment}"
-  generated_suffix      = random_id.suffix.hex
-  frontend_bucket_name  = var.frontend_bucket_name != "" ? var.frontend_bucket_name : "${local.name_prefix}-frontend-${local.generated_suffix}"
-  microvm_image_name    = substr(replace("${local.name_prefix}-${local.generated_suffix}", "/[^A-Za-z0-9-_]/", "-"), 0, 64)
-  base_image_arn        = var.microvm_base_image_arn != "" ? var.microvm_base_image_arn : "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:aws:microvm-image:al2023-1"
-  microvm_artifact_uri  = "s3://${data.aws_s3_bucket.artifacts.bucket}/${data.aws_s3_object.microvm.key}"
-  microvm_image_log_arn = "${aws_cloudwatch_log_group.microvm.arn}:*"
+  name_prefix            = "${var.project_name}-${var.environment}"
+  generated_suffix       = random_id.suffix.hex
+  frontend_bucket_name   = var.frontend_bucket_name != "" ? var.frontend_bucket_name : "${local.name_prefix}-frontend-${local.generated_suffix}"
+  openrouter_secret_name = var.openrouter_api_key_secret_name != "" ? var.openrouter_api_key_secret_name : "${local.name_prefix}/openrouter/api-key"
+  microvm_image_name     = substr(replace("${local.name_prefix}-${local.generated_suffix}", "/[^A-Za-z0-9-_]/", "-"), 0, 64)
+  base_image_arn         = var.microvm_base_image_arn != "" ? var.microvm_base_image_arn : "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:aws:microvm-image:al2023-1"
+  microvm_artifact_uri   = "s3://${data.aws_s3_bucket.artifacts.bucket}/${data.aws_s3_object.microvm.key}"
+  microvm_image_log_arn  = "${aws_cloudwatch_log_group.microvm.arn}:*"
   # Vite copies a local development placeholder for this file. The separately
   # managed object below must own the production version with the API URL.
   frontend_dist_files = setsubtract(
@@ -124,6 +125,15 @@ resource "aws_cloudwatch_log_group" "api_gateway" {
 resource "aws_cloudwatch_log_group" "microvm" {
   name              = "/aws/lambda/microvms/${local.microvm_image_name}"
   retention_in_days = var.log_retention_in_days
+}
+
+# The secret container is managed here, but its value is deliberately not
+# represented in Terraform state. Populate it after apply with
+# `aws secretsmanager put-secret-value` (or import an existing secret first).
+resource "aws_secretsmanager_secret" "openrouter_api_key" {
+  name                    = local.openrouter_secret_name
+  description             = "OpenRouter API key for ${local.name_prefix}"
+  recovery_window_in_days = 7
 }
 
 data "aws_iam_policy_document" "lambda_assume_role" {
@@ -243,6 +253,13 @@ data "aws_iam_policy_document" "streaming_proxy" {
     effect    = "Allow"
     actions   = ["dynamodb:GetItem", "dynamodb:UpdateItem"]
     resources = [aws_dynamodb_table.sessions.arn]
+  }
+
+  statement {
+    sid       = "ReadOpenRouterApiKey"
+    effect    = "Allow"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [aws_secretsmanager_secret.openrouter_api_key.arn]
   }
 
   # MicroVM instance actions do not support instance-level resource ARNs.
@@ -374,6 +391,8 @@ resource "aws_lambda_function" "controller" {
     variables = {
       MICROVM_IMAGE_IDENTIFIER = aws_cloudformation_stack.microvm_image.outputs["ImageArn"]
       MICROVM_RUNTIME_ROLE_ARN = aws_iam_role.microvm_runtime.arn
+      JUDGING_PROVIDER         = var.judging_provider
+      OPENROUTER_MODEL         = var.openrouter_model
       SESSION_TABLE_NAME       = aws_dynamodb_table.sessions.name
       SESSION_DURATION_SECONDS = "3600"
     }
@@ -402,10 +421,13 @@ resource "aws_lambda_function" "streaming_proxy" {
 
   environment {
     variables = {
-      MICROVM_IMAGE_IDENTIFIER = aws_cloudformation_stack.microvm_image.outputs["ImageArn"]
-      MICROVM_RUNTIME_ROLE_ARN = aws_iam_role.microvm_runtime.arn
-      SESSION_DURATION_SECONDS = "3600"
-      SESSION_TABLE_NAME       = aws_dynamodb_table.sessions.name
+      MICROVM_IMAGE_IDENTIFIER      = aws_cloudformation_stack.microvm_image.outputs["ImageArn"]
+      MICROVM_RUNTIME_ROLE_ARN      = aws_iam_role.microvm_runtime.arn
+      JUDGING_PROVIDER              = var.judging_provider
+      OPENROUTER_API_KEY_SECRET_ARN = aws_secretsmanager_secret.openrouter_api_key.arn
+      OPENROUTER_MODEL              = var.openrouter_model
+      SESSION_DURATION_SECONDS      = "3600"
+      SESSION_TABLE_NAME            = aws_dynamodb_table.sessions.name
     }
   }
 

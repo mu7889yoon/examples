@@ -11,6 +11,7 @@ The MicroVM runtime artifact is not a local Terraform input. `../publisher` firs
 - Controller and Streaming Proxy Lambda functions, their minimal execution roles, and CloudWatch log groups
 - DynamoDB session table with TTL on `expiresAt`
 - a build role and a runtime role for Lambda MicroVMs
+- an empty Secrets Manager container for the OpenRouter API key, readable only by the Streaming Proxy role
 - a CloudFormation nested stack containing `AWS::Lambda::MicrovmImage`
 
 The nested CloudFormation stack is required because the AWS provider does not yet model `AWS::Lambda::MicrovmImage` directly. It receives an immutable S3 artifact URI; individual one-hour MicroVMs remain operational state outside Terraform.
@@ -51,5 +52,19 @@ After `apply`, use `terraform output` for the API base URL, CloudFront hostname,
 ## Security boundary
 
 The frontend never receives a MicroVM endpoint or its auth token. The Streaming Proxy role can only read/update the session record and mint `CreateMicrovmAuthToken` tokens for account-local MicroVMs. Controller can only launch the configured image and pass the dedicated runtime role. The MicroVM build role can read only the selected immutable artifact key. The runtime role is limited to its CloudWatch logs; grant it additional AWS access only when a runtime feature requires it.
+
+## OpenRouter configuration
+
+`judging_provider` defaults to `microvm`, so the existing MicroVM path remains available while the OpenRouter path is validated. Set it to `openrouter` and use `openrouter_model` (default `typesafe/jev-1.13`) to switch the application provider. Terraform creates the Secrets Manager container but never stores the API key value in state:
+
+```sh
+AWS_PROFILE=yuta terraform -chdir=infrastructure/terraform apply
+SECRET_ARN=$(AWS_PROFILE=yuta terraform -chdir=infrastructure/terraform output -raw openrouter_api_key_secret_arn)
+AWS_PROFILE=yuta aws secretsmanager put-secret-value \
+  --secret-id "$SECRET_ARN" \
+  --secret-string "$OPENROUTER_API_KEY"
+```
+
+Set `OPENROUTER_API_KEY` only in the shell (or CI secret store) running this command; do not put it in a tfvars file or Terraform variable. After the value is present, set `judging_provider = "openrouter"` in the deployment tfvars and apply again. No OIDC configuration is required for the server-to-server Lambda integration.
 
 The API intentionally has no user authentication because this is a POC. Do not reuse that setting for an internet-facing deployment.

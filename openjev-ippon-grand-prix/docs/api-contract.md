@@ -1,6 +1,6 @@
 # AI大喜利 API・イベント契約
 
-この文書は、Frontend、Controller / Proxy、Inference Runtime 間で共有する契約です。
+この文書は、Frontend、Controller / Proxy、MicroVMまたはOpenRouterのJudge Provider間で共有する契約です。
 
 ## Public API
 
@@ -39,7 +39,11 @@ data: {"laughCount":14,"judgeCount":20,"score":13.48,"ippon":true}
 
 `score` は全Judgeの `P(笑う)` の合計とする。`requiredLaughCount` は `ceil(judgeCount * ipponThresholdRatio)` で算出する。
 
-## Inference Runtime
+## Provider
+
+`JUDGING_PROVIDER=microvm` の場合は、以下のMicroVM経路を使います。`JUDGING_PROVIDER=openrouter` の場合は、ProxyがOpenRouter Decisions APIへ20個のNoul質問を1リクエストで送り、同じSSEイベントへ変換します。どちらもブラウザへ認証情報やプロバイダーの内部情報を返しません。
+
+## MicroVM Inference Runtime
 
 Inference Runtime の公開先は MicroVM 専用HTTPS endpointだけとする。ブラウザへ endpoint URL と MicroVM auth token は返さない。Proxyが `CreateMicrovmAuthToken` で短命トークンを取得して中継する。
 

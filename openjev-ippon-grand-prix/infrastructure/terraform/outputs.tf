@@ -52,3 +52,13 @@ output "microvm_runtime_role_arn" {
   description = "Runtime execution role passed by Controller to RunMicrovm."
   value       = aws_iam_role.microvm_runtime.arn
 }
+
+output "openrouter_api_key_secret_arn" {
+  description = "Secrets Manager ARN for the OpenRouter API key container. The value is managed out-of-band."
+  value       = aws_secretsmanager_secret.openrouter_api_key.arn
+}
+
+output "openrouter_api_key_secret_name" {
+  description = "Secrets Manager name for the OpenRouter API key container."
+  value       = aws_secretsmanager_secret.openrouter_api_key.name
+}

@@ -2,6 +2,13 @@
 project_name = "openjev-ippon-grand-prix"
 environment  = "poc"
 
+# Keep MicroVM while validating the OpenRouter implementation. Switch to
+# "openrouter" after storing the API key in the secret below.
+judging_provider = "microvm"
+openrouter_model = "typesafe/jev-1.13"
+# Optional. Empty uses "<project>-<environment>/openrouter/api-key".
+# openrouter_api_key_secret_name = "openjev-ippon-grand-prix-poc/openrouter/api-key"
+
 # First apply infrastructure/publisher, start its CodeBuild release, then copy
 # PUBLISHED_ARTIFACT_BUCKET and PUBLISHED_ARTIFACT_KEY from the build logs.
 artifact_bucket_name  = "REPLACE_WITH_PUBLISHER_OUTPUT"

@@ -1,6 +1,6 @@
 # AI大喜利システム
 
-複数のAI JudgeがOpenJev（SemIf）の選択肢logitを使い、大喜利の回答を評価するPoCです。
+複数のAI JudgeがOpenJev（SemIf）またはOpenRouter上のTypeSafe Jevを使い、大喜利の回答を評価するPoCです。
 
 - `apps/frontend`: S3 + CloudFrontで配信するWeb UI
 - `apps/backend`: Session Controller と SSE Streaming Proxy
@@ -11,6 +11,10 @@
 OpenJevは `b9cb32537e78be65f19abfcb1de8fc504b627d84` に固定して利用します。モデル重みはリポジトリに保存しません。Qwen3-0.6B の GGUF は固定revision・サイズ・SHA-256を CodeBuild 上で検証し、MicroVM用の artifact ZIP に同梱して private S3 へ内容ハッシュ付きのキーで発行します。
 
 AWS操作は必ず `--profile yuta --region ap-northeast-1` を指定します。Terraform に `--profile` オプションはないため、Terraform 実行時は `AWS_PROFILE=yuta` を使います。
+
+## OpenRouter経路への切替
+
+既定値は既存MicroVMのままです。Secrets ManagerへOpenRouter APIキーを登録した後、`infrastructure/terraform/terraform.tfvars` の `judging_provider` を `openrouter` に変更して apply すると、同じAPI/SSE契約のまま `typesafe/jev-1.13` を利用できます。キーはTerraform変数やリポジトリへ保存しません。切替中もMicroVM資産は残るため、問題発生時は `microvm` に戻せます。
 
 ## 初回デプロイ
 

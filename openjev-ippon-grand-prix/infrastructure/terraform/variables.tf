@@ -21,6 +21,34 @@ variable "environment" {
   default     = "poc"
 }
 
+variable "judging_provider" {
+  description = "Judge backend used by the Lambda application. Keep microvm while the OpenRouter path is being validated."
+  type        = string
+  default     = "microvm"
+
+  validation {
+    condition     = contains(["microvm", "openrouter"], var.judging_provider)
+    error_message = "judging_provider must be either microvm or openrouter."
+  }
+}
+
+variable "openrouter_model" {
+  description = "OpenRouter model identifier used when judging_provider is openrouter."
+  type        = string
+  default     = "typesafe/jev-1.13"
+
+  validation {
+    condition     = length(trimspace(var.openrouter_model)) > 0
+    error_message = "openrouter_model must not be empty."
+  }
+}
+
+variable "openrouter_api_key_secret_name" {
+  description = "Secrets Manager name for the OpenRouter API key. The secret value is populated out-of-band."
+  type        = string
+  default     = ""
+}
+
 variable "frontend_bucket_name" {
   description = "Optional globally unique frontend bucket name. Empty generates a unique name."
   type        = string
