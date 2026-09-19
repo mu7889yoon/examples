@@ -45,28 +45,3 @@ export class AwsMicroVmService implements MicroVmService {
     return token;
   }
 }
-
-export class FakeMicroVmService implements MicroVmService {
-  readonly vms = new Map<string, MicroVm>();
-  nextId = 0;
-  runCalls = 0;
-  terminateCalls: string[] = [];
-  authToken = 'fake-token';
-  async run(_: RunMicrovmInput): Promise<MicroVm> {
-    this.runCalls++;
-    const vm = { id: `fake-vm-${++this.nextId}`, state: 'RUNNING', endpoint: 'https://fake-microvm.test' };
-    this.vms.set(vm.id, vm);
-    return vm;
-  }
-  async get(id: string): Promise<MicroVm> {
-    const vm = this.vms.get(id);
-    if (!vm) throw new Error(`unknown fake microvm: ${id}`);
-    return vm;
-  }
-  async terminate(id: string): Promise<void> {
-    this.terminateCalls.push(id);
-    const vm = this.vms.get(id);
-    if (vm) vm.state = 'TERMINATED';
-  }
-  async createAuthToken(_: string, __: number, ___ = 8080): Promise<string> { return this.authToken; }
-}
