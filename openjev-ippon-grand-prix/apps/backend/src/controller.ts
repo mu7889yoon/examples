@@ -113,7 +113,7 @@ async function createSession(deps: ControllerDependencies): Promise<APIGatewayPr
   const record: SessionRecord = {
     sessionId: randomUUID(), state: 'STARTING', startedAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + deps.config.durationSeconds * 1000).toISOString(),
-    updatedAt: now.toISOString(), modelName: process.env.MODEL_NAME ?? 'Qwen3.5-4B',
+    updatedAt: now.toISOString(), modelName: process.env.MODEL_NAME ?? 'Qwen3-0.6B',
   };
   await deps.sessions.create(record);
   try {

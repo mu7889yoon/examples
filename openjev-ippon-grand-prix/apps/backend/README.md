@@ -9,7 +9,7 @@ The public API never returns the MicroVM endpoint or `X-aws-proxy-auth` token. T
 
 ## Environment
 
-`SESSION_TABLE_NAME`, `MICROVM_IMAGE_IDENTIFIER` (required), `MICROVM_IMAGE_VERSION`, `MICROVM_RUNTIME_ROLE_ARN`, `MICROVM_PORT` (default `8080`), `SESSION_DURATION_SECONDS` (default `3600`), `MICROVM_TOKEN_EXPIRATION_MINUTES` (default `60`), and `MODEL_NAME` (default `Qwen3.5-4B`).
+`SESSION_TABLE_NAME`, `MICROVM_IMAGE_IDENTIFIER` (required), `MICROVM_IMAGE_VERSION`, `MICROVM_RUNTIME_ROLE_ARN`, `MICROVM_PORT` (default `8080`), `SESSION_DURATION_SECONDS` (default `3600`), `MICROVM_TOKEN_EXPIRATION_MINUTES` (default `60`), and `MODEL_NAME` (default `Qwen3-0.6B`).
 
 The AWS adapter uses `@aws-sdk/client-lambda-microvms` (`RunMicrovm`, `GetMicrovm`, `TerminateMicrovm`, `CreateMicrovmAuthToken`) and the repository uses DynamoDB conditional expressions for the session creation and judge lock.
 

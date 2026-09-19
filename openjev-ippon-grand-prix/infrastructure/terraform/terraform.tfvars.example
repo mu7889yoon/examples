@@ -22,6 +22,6 @@ streaming_proxy_lambda_artifact_key = "lambda/streaming-proxy.zip"
 # uploads to the CloudFront origin on every apply.
 frontend_dist_path = "../../apps/frontend/dist"
 
-# Qwen3.5-4B Q4_K_M is packaged into the image. Lambda MicroVMs can burst CPU;
+# Qwen3-0.6B Q4_K_M is packaged into the image. Lambda MicroVMs can burst CPU;
 # 4 GiB is the PoC baseline and can be raised after observing RSS.
 microvm_minimum_memory_mib = 4096

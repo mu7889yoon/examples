@@ -4,13 +4,13 @@
     "durationSeconds": 3600
   },
   "model": {
-    "name": "Qwen3.5-4B",
+    "name": "Qwen3-0.6B",
     "backend": "llama.cpp",
-    "source": "bartowski/Qwen_Qwen3.5-4B-GGUF",
-    "revision": "4168f45a16a1290d65a4ec0fa312ae917a4c15d6",
-    "ggufFile": "Qwen_Qwen3.5-4B-Q4_K_M.gguf",
-    "expectedBytes": 3013027808,
-    "sha256": "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
+    "source": "bartowski/Qwen_Qwen3-0.6B-GGUF",
+    "revision": "60b85c0e3d8fe0f6474f406922a26d12aca4550d",
+    "ggufFile": "Qwen_Qwen3-0.6B-Q4_K_M.gguf",
+    "expectedBytes": 484220320,
+    "sha256": "9acfc1e001311f34b4252001b626f2e466d592a42065f66571bff3790d4e1b14",
     "llamaServerUrl": "http://127.0.0.1:8081",
     "optionTokenIds": [32, 33]
   },

@@ -8,7 +8,7 @@
 - `infrastructure/publisher`: モデルを検証・パッケージして private S3 へ発行する CodeBuild 基盤
 - `infrastructure/terraform`: 発行済み artifact を参照するアプリケーション基盤。実行中のMicroVMはTerraform state外
 
-OpenJevは `b9cb32537e78be65f19abfcb1de8fc504b627d84` に固定して利用します。モデル重みはリポジトリに保存しません。Qwen3.5-4B の GGUF は固定revision・サイズ・SHA-256を CodeBuild 上で検証し、MicroVM用の artifact ZIP に同梱して private S3 へ内容ハッシュ付きのキーで発行します。
+OpenJevは `b9cb32537e78be65f19abfcb1de8fc504b627d84` に固定して利用します。モデル重みはリポジトリに保存しません。Qwen3-0.6B の GGUF は固定revision・サイズ・SHA-256を CodeBuild 上で検証し、MicroVM用の artifact ZIP に同梱して private S3 へ内容ハッシュ付きのキーで発行します。
 
 AWS操作は必ず `--profile yuta --region ap-northeast-1` を指定します。Terraform に `--profile` オプションはないため、Terraform 実行時は `AWS_PROFILE=yuta` を使います。
 
