@@ -308,8 +308,9 @@ function App() {
     setScreen('welcome')
   }
 
-  const laughProgress = session?.judgeCount ? Math.min(1, laughCount / session.judgeCount) : 0
-  const laughDepth = `${Math.round(12 + laughProgress * 82)}px`
+  const laughTarget = session?.requiredLaughCount ?? session?.judgeCount ?? 1
+  const laughProgress = Math.min(1, laughCount / laughTarget)
+  const laughDepth = `${Math.round(laughProgress * 50)}%`
 
   return (
     <main className="page-shell">
