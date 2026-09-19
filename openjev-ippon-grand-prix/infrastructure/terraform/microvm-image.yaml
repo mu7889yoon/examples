@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: OpenJev runtime image for the AI Ippon Grand Prix POC
+
+Parameters:
+  ArtifactUri:
+    Type: String
+    Description: Immutable S3 URI of the pre-published ZIP containing Dockerfile, OpenJev runtime, models, and configs.
+  BaseImageArn:
+    Type: String
+  BaseImageVersion:
+    Type: String
+  BuildRoleArn:
+    Type: String
+  ImageName:
+    Type: String
+  LogGroupName:
+    Type: String
+  MinimumMemoryInMiB:
+    Type: Number
+  RuntimeHookPort:
+    Type: Number
+
+Resources:
+  OpenJevMicrovmImage:
+    Type: AWS::Lambda::MicrovmImage
+    Properties:
+      Name: !Ref ImageName
+      Description: OpenJev native-logit scorer for AI Ippon Grand Prix
+      BaseImageArn: !Ref BaseImageArn
+      BaseImageVersion: !Ref BaseImageVersion
+      BuildRoleArn: !Ref BuildRoleArn
+      CodeArtifact:
+        Uri: !Ref ArtifactUri
+      CpuConfigurations:
+        - Architecture: ARM_64
+      Resources:
+        - MinimumMemoryInMiB: !Ref MinimumMemoryInMiB
+      AdditionalOsCapabilities: []
+      EgressNetworkConnectors: []
+      EnvironmentVariables: []
+      Hooks:
+        Port: !Ref RuntimeHookPort
+        MicrovmImageHooks:
+          Ready: ENABLED
+          ReadyTimeoutInSeconds: 900
+          Validate: ENABLED
+          ValidateTimeoutInSeconds: 900
+        MicrovmHooks:
+          Run: ENABLED
+          RunTimeoutInSeconds: 60
+          Suspend: ENABLED
+          SuspendTimeoutInSeconds: 30
+          Resume: ENABLED
+          ResumeTimeoutInSeconds: 30
+          Terminate: ENABLED
+          TerminateTimeoutInSeconds: 60
+      Logging:
+        CloudWatch:
+          LogGroup: !Ref LogGroupName
+      Tags:
+        - Key: Project
+          Value: openjev-ippon-grand-prix
+
+Outputs:
+  ImageArn:
+    Value: !GetAtt OpenJevMicrovmImage.ImageArn
+  LatestActiveImageVersion:
+    Value: !GetAtt OpenJevMicrovmImage.LatestActiveImageVersion
+  State:
+    Value: !GetAtt OpenJevMicrovmImage.State

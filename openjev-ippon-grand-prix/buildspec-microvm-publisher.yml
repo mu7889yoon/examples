@@ -1,0 +1,113 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  build:
+    commands:
+      - |
+        set -euo pipefail
+        : "${ARTIFACT_BUCKET:?ARTIFACT_BUCKET must be supplied by the CodeBuild project}"
+        : "${ARTIFACT_RELEASE_PREFIX:?ARTIFACT_RELEASE_PREFIX must be supplied by the CodeBuild project}"
+        : "${PUBLISHER_SOURCE_DIRECTORY:?PUBLISHER_SOURCE_DIRECTORY must be supplied by the CodeBuild project}"
+        cd "$PUBLISHER_SOURCE_DIRECTORY"
+
+        python3 apps/inference/scripts/download_model.py \
+          --config configs/config.json --output-dir models
+        apps/inference/scripts/package_artifact.sh artifacts/openjev-runtime.zip
+
+        zip_path="artifacts/openjev-runtime.zip"
+        zip_sha256="$(sha256sum "$zip_path" | awk '{print $1}')"
+        zip_checksum_b64="$(python3 - "$zip_path" <<'PY'
+        import base64
+        import hashlib
+        import sys
+        from pathlib import Path
+
+        print(base64.b64encode(hashlib.sha256(Path(sys.argv[1]).read_bytes()).digest()).decode())
+        PY
+        )"
+        model_revision="$(python3 - <<'PY'
+        import json
+        from pathlib import Path
+
+        print(json.loads(Path("configs/config.json").read_text(encoding="utf-8"))["model"]["revision"])
+        PY
+        )"
+        source_revision="${CODEBUILD_RESOLVED_SOURCE_VERSION:-$(git rev-parse HEAD)}"
+        artifact_key="${ARTIFACT_RELEASE_PREFIX}/${model_revision}/${zip_sha256}/openjev-runtime.zip"
+
+        if aws s3api head-object --bucket "$ARTIFACT_BUCKET" --key "$artifact_key" > existing-artifact.json 2>/dev/null; then
+          python3 - "$zip_sha256" existing-artifact.json <<'PY'
+        import json
+        import sys
+        from pathlib import Path
+
+        expected, response_path = sys.argv[1:]
+        metadata = json.loads(Path(response_path).read_text(encoding="utf-8")).get("Metadata", {})
+        if metadata.get("zip-sha256") != expected:
+            raise SystemExit("existing artifact metadata has an unexpected zip-sha256")
+        PY
+        else
+          aws s3api put-object \
+            --bucket "$ARTIFACT_BUCKET" \
+            --key "$artifact_key" \
+            --body "$zip_path" \
+            --if-none-match "*" \
+            --checksum-algorithm SHA256 \
+            --checksum-sha256 "$zip_checksum_b64" \
+            --metadata "zip-sha256=$zip_sha256,model-revision=$model_revision,source-revision=$source_revision"
+        fi
+
+        aws s3api head-object --bucket "$ARTIFACT_BUCKET" --key "$artifact_key" > published-artifact.json
+        artifact_version_id="$(python3 - <<'PY'
+        import json
+        from pathlib import Path
+
+        version_id = json.loads(Path("published-artifact.json").read_text(encoding="utf-8")).get("VersionId")
+        if not version_id:
+            raise SystemExit("published artifact has no S3 VersionId; bucket versioning must be enabled")
+        print(version_id)
+        PY
+        )"
+
+        python3 - "$artifact_key" "$artifact_version_id" "$zip_sha256" "$model_revision" "$source_revision" > release-manifest.json <<'PY'
+        import json
+        import os
+        import sys
+
+        artifact_key, version_id, zip_sha256, model_revision, source_revision = sys.argv[1:]
+        model = json.load(open("configs/config.json", encoding="utf-8"))["model"]
+        print(json.dumps({
+            "formatVersion": 1,
+            "artifactBucket": os.environ["ARTIFACT_BUCKET"],
+            "artifactKey": artifact_key,
+            "artifactVersionId": version_id,
+            "artifactSha256": zip_sha256,
+            "sourceRevision": source_revision,
+            "model": {
+                "name": model["name"],
+                "source": model["source"],
+                "revision": model_revision,
+                "ggufFile": model["ggufFile"],
+                "expectedBytes": model["expectedBytes"],
+                "sha256": model["sha256"],
+            },
+        }, ensure_ascii=False, indent=2))
+        PY
+
+        manifest_key="${artifact_key}.manifest.json"
+        if ! aws s3api head-object --bucket "$ARTIFACT_BUCKET" --key "$manifest_key" >/dev/null 2>&1; then
+          aws s3api put-object \
+            --bucket "$ARTIFACT_BUCKET" \
+            --key "$manifest_key" \
+            --body release-manifest.json \
+            --if-none-match "*" \
+            --content-type application/json
+        fi
+
+        printf 'PUBLISHED_ARTIFACT_BUCKET=%s\n' "$ARTIFACT_BUCKET"
+        printf 'PUBLISHED_ARTIFACT_KEY=%s\n' "$artifact_key"
+        printf 'PUBLISHED_ARTIFACT_VERSION_ID=%s\n' "$artifact_version_id"
+        printf 'PUBLISHED_ARTIFACT_SHA256=%s\n' "$zip_sha256"

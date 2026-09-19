@@ -1,0 +1,15 @@
+# Terraform itself has no --profile flag; invoke it with AWS_PROFILE=yuta.
+project_name = "openjev-ippon-grand-prix"
+environment  = "poc"
+
+# Authorize CodeBuild to access this repository in AWS before applying.
+publisher_source_type     = "GITHUB"
+publisher_source_location = "https://github.com/OWNER/REPOSITORY.git"
+
+# Use . when this project is the repository root. For a monorepo, set the
+# relative directory that contains this project's configs/ and apps/ folders.
+publisher_source_directory = "."
+
+# Leave empty to generate a unique private, versioned bucket name.
+artifact_bucket_name   = ""
+artifact_release_prefix = "microvm/published"

@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "session": {
+    "durationSeconds": 3600
+  },
+  "model": {
+    "name": "Qwen3-0.6B",
+    "backend": "llama.cpp",
+    "source": "Qwen/Qwen3-0.6B-GGUF",
+    "revision": "23749fefcc72300e3a2ad315e1317431b06b590a",
+    "ggufFile": "Qwen3-0.6B-Q8_0.gguf",
+    "expectedBytes": 639446688,
+    "sha256": "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031",
+    "llamaServerUrl": "http://127.0.0.1:8081",
+    "optionTokenIds": [32, 33]
+  },
+  "state": {
+    "system": "あなたは大喜利大会の観客です。",
+    "language": "ja",
+    "context": "回答を実際に聞いた観客として自然に笑うかどうかを判定してください。"
+  },
+  "decision": {
+    "question": "この回答を聞いて、あなたは笑いますか？",
+    "options": ["笑う", "笑わない"],
+    "laughProbabilityThreshold": 0.5
+  },
+  "scoring": {
+    "ipponThresholdRatio": 0.5,
+    "maxParallelJudges": 4
+  }
+}

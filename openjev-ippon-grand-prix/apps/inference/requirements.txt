@@ -1,0 +1,4 @@
+# llama.cpp is compiled in the image for the target ARM64 CPU.  Model weights
+# are resolved at image build time and are never committed.
+fastapi==0.115.12
+uvicorn[standard]==0.34.0

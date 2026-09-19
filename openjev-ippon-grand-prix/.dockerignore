@@ -1,0 +1,7 @@
+.git
+artifacts
+**/__pycache__
+**/*.py[cod]
+apps/inference/tests
+# Do not send abandoned, interrupted model transfers in the Docker build context.
+models/.*.part

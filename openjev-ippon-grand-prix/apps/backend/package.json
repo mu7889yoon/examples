@@ -1,0 +1,26 @@
+{
+  "name": "openjev-ippon-grand-prix-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "package:controller": "npm run build && node scripts/package-lambda.mjs controller",
+    "package:streaming-proxy": "npm run build && node scripts/package-lambda.mjs streaming-proxy",
+    "package": "npm run package:controller && npm run package:streaming-proxy"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.864.0",
+    "@aws-sdk/client-lambda-microvms": "^3.864.0",
+    "@aws-sdk/lib-dynamodb": "^3.864.0",
+    "@smithy/core": "3.33.3",
+    "@smithy/types": "4.16.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^22.15.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

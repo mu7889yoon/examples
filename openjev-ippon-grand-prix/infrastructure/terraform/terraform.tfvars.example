@@ -1,0 +1,26 @@
+# Terraform itself has no --profile flag; invoke it with AWS_PROFILE=yuta.
+project_name = "openjev-ippon-grand-prix"
+environment  = "poc"
+
+# First apply infrastructure/publisher, start its CodeBuild release, then copy
+# PUBLISHED_ARTIFACT_BUCKET and PUBLISHED_ARTIFACT_KEY from the build logs.
+artifact_bucket_name  = "REPLACE_WITH_PUBLISHER_OUTPUT"
+microvm_artifact_key  = "microvm/published/REPLACE_WITH_40_HEX_MODEL_REVISION/REPLACE_WITH_64_HEX_ZIP_SHA256/openjev-runtime.zip"
+
+# Obtain this immutable value with an AWS CLI version that supports Lambda MicroVMs:
+# aws lambda-microvms list-managed-microvm-image-versions \
+#   --image-identifier arn:aws:lambda:ap-northeast-1:aws:microvm-image:al2023-1 \
+#   --region ap-northeast-1 --profile yuta
+microvm_base_image_version = "REPLACE_WITH_AVAILABLE_VERSION"
+
+# The two Lambda ZIPs are still uploaded from these local paths during the
+# application deployment. The MicroVM ZIP is exclusively published by CodeBuild.
+controller_lambda_artifact_key      = "lambda/controller.zip"
+streaming_proxy_lambda_artifact_key = "lambda/streaming-proxy.zip"
+
+# npm run build in apps/frontend produces this directory, which Terraform
+# uploads to the CloudFront origin on every apply.
+frontend_dist_path = "../../apps/frontend/dist"
+
+# Start conservatively; set from measured model RSS plus llama.cpp/OpenJev overhead.
+microvm_minimum_memory_mib = 8192
