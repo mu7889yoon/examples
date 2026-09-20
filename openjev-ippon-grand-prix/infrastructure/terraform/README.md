@@ -55,7 +55,7 @@ The frontend never receives a MicroVM endpoint or its auth token. The Streaming 
 
 ## OpenRouter configuration
 
-`judging_provider` defaults to `microvm`, so the existing MicroVM path remains available while the OpenRouter path is validated. Set it to `openrouter` and use `openrouter_model` (default `typesafe/jev-1.13`) to switch the application provider. Terraform creates the Secrets Manager container but never stores the API key value in state:
+`judging_provider` defaults to `microvm`, so the existing MicroVM path remains available while the OpenRouter path is validated. Set it to `openrouter` and use `openrouter_model` (default `typesafe/jev-1.13`) to switch the application provider. For OpenRouter, `laugh_probability_threshold` controls the Noul probability required to count as a laugh. Terraform creates the Secrets Manager container but never stores the API key value in state:
 
 ```sh
 AWS_PROFILE=yuta terraform -chdir=infrastructure/terraform apply

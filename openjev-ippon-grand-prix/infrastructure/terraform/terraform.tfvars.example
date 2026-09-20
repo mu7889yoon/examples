@@ -6,6 +6,8 @@ environment  = "poc"
 # "openrouter" after storing the API key in the secret below.
 judging_provider = "microvm"
 openrouter_model = "typesafe/jev-1.13"
+# OpenRouter Noul probability at or above this value counts as a laugh.
+laugh_probability_threshold = 0.7
 # Optional. Empty uses "<project>-<environment>/openrouter/api-key".
 # openrouter_api_key_secret_name = "openjev-ippon-grand-prix-poc/openrouter/api-key"
 

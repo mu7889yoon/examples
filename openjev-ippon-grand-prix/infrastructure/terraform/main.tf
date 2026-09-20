@@ -389,12 +389,13 @@ resource "aws_lambda_function" "controller" {
 
   environment {
     variables = {
-      MICROVM_IMAGE_IDENTIFIER = aws_cloudformation_stack.microvm_image.outputs["ImageArn"]
-      MICROVM_RUNTIME_ROLE_ARN = aws_iam_role.microvm_runtime.arn
-      JUDGING_PROVIDER         = var.judging_provider
-      OPENROUTER_MODEL         = var.openrouter_model
-      SESSION_TABLE_NAME       = aws_dynamodb_table.sessions.name
-      SESSION_DURATION_SECONDS = "3600"
+      MICROVM_IMAGE_IDENTIFIER    = aws_cloudformation_stack.microvm_image.outputs["ImageArn"]
+      MICROVM_RUNTIME_ROLE_ARN    = aws_iam_role.microvm_runtime.arn
+      JUDGING_PROVIDER            = var.judging_provider
+      LAUGH_PROBABILITY_THRESHOLD = tostring(var.laugh_probability_threshold)
+      OPENROUTER_MODEL            = var.openrouter_model
+      SESSION_TABLE_NAME          = aws_dynamodb_table.sessions.name
+      SESSION_DURATION_SECONDS    = "3600"
     }
   }
 
@@ -424,6 +425,7 @@ resource "aws_lambda_function" "streaming_proxy" {
       MICROVM_IMAGE_IDENTIFIER      = aws_cloudformation_stack.microvm_image.outputs["ImageArn"]
       MICROVM_RUNTIME_ROLE_ARN      = aws_iam_role.microvm_runtime.arn
       JUDGING_PROVIDER              = var.judging_provider
+      LAUGH_PROBABILITY_THRESHOLD   = tostring(var.laugh_probability_threshold)
       OPENROUTER_API_KEY_SECRET_ARN = aws_secretsmanager_secret.openrouter_api_key.arn
       OPENROUTER_MODEL              = var.openrouter_model
       SESSION_DURATION_SECONDS      = "3600"

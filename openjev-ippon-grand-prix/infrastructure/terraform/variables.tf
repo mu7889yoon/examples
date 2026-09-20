@@ -49,6 +49,17 @@ variable "openrouter_api_key_secret_name" {
   default     = ""
 }
 
+variable "laugh_probability_threshold" {
+  description = "Minimum OpenRouter Noul probability treated as a laugh."
+  type        = number
+  default     = 0.7
+
+  validation {
+    condition     = var.laugh_probability_threshold >= 0 && var.laugh_probability_threshold <= 1
+    error_message = "laugh_probability_threshold must be between 0 and 1."
+  }
+}
+
 variable "frontend_bucket_name" {
   description = "Optional globally unique frontend bucket name. Empty generates a unique name."
   type        = string
