@@ -112,6 +112,7 @@ SecurityCallbacks securityCallbacks;
 void beginBleKeyboard() {
   BLEDevice::init(kBleName);
   BLEDevice::setSecurityCallbacks(&securityCallbacks);
+  BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT);
 
   // Encrypted HID report permissions in BLEHIDDevice trigger pairing. The
   // ESP32 Bluedroid stack stores bond keys in NVS across power cycles.
