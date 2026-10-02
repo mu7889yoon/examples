@@ -123,3 +123,7 @@ docker compose -f app/compose.yml exec backend ./mvnw test
 ```
 
 FlywayがDBスキーマを管理し、Hibernateは起動時にEntityとスキーマの整合性を検証します。
+
+## AWSへのデプロイ
+
+AWS CDKとcdkdを使ったFargate・Aurora構成は[infra/README.md](infra/README.md)を参照してください。
