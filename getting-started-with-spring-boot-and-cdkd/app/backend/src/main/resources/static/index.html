@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Todo</title>
+</head>
+<body>
+<header>
+    <h1>Todo</h1>
+</header>
+
+<main>
+    <section>
+        <h2>新しいTodo</h2>
+
+        <form id="create-form">
+            <p>
+                <label for="title">タイトル（必須）</label><br>
+                <input id="title" name="title" type="text" maxlength="200" required>
+            </p>
+
+            <p>
+                <label for="description">説明</label><br>
+                <textarea id="description" name="description" maxlength="2000" rows="4" cols="50"></textarea>
+            </p>
+
+            <p>
+                <label for="due-date">期限</label><br>
+                <input id="due-date" name="dueDate" type="date">
+            </p>
+
+            <button type="submit">登録</button>
+        </form>
+    </section>
+
+    <hr>
+
+    <section>
+        <h2>Todo一覧</h2>
+
+        <label for="status-filter">状態</label>
+        <select id="status-filter">
+            <option value="">すべて</option>
+            <option value="OPEN">未完了</option>
+            <option value="COMPLETED">完了</option>
+        </select>
+        <button id="reload-button" type="button">再読み込み</button>
+
+        <p id="message" role="status" aria-live="polite"></p>
+        <ul id="todo-list"></ul>
+    </section>
+</main>
+
+<script>
+    const apiUrl = "/api/todos";
+    const createForm = document.querySelector("#create-form");
+    const statusFilter = document.querySelector("#status-filter");
+    const reloadButton = document.querySelector("#reload-button");
+    const todoList = document.querySelector("#todo-list");
+    const message = document.querySelector("#message");
+
+    async function request(url, options = {}) {
+        const response = await fetch(url, options);
+
+        if (!response.ok) {
+            const problem = await response.json().catch(() => null);
+            throw new Error(problem?.detail ?? `リクエストに失敗しました（${response.status}）`);
+        }
+
+        if (response.status === 204) {
+            return null;
+        }
+
+        return response.json();
+    }
+
+    async function loadTodos() {
+        message.textContent = "読み込み中です...";
+        todoList.replaceChildren();
+
+        try {
+            const status = statusFilter.value;
+            const url = status ? `${apiUrl}?status=${encodeURIComponent(status)}` : apiUrl;
+            const todos = await request(url);
+
+            if (todos.length === 0) {
+                message.textContent = "Todoはありません。";
+                return;
+            }
+
+            message.textContent = `${todos.length}件あります。`;
+            todos.forEach(todo => todoList.append(createTodoItem(todo)));
+        } catch (error) {
+            message.textContent = error.message;
+        }
+    }
+
+    function createTodoItem(todo) {
+        const item = document.createElement("li");
+        const title = document.createElement("strong");
+        const details = document.createElement("p");
+        const statusButton = document.createElement("button");
+        const deleteButton = document.createElement("button");
+
+        title.textContent = todo.title;
+        details.textContent = [
+            todo.description,
+            todo.dueDate ? `期限: ${todo.dueDate}` : null,
+            `状態: ${todo.status === "COMPLETED" ? "完了" : "未完了"}`
+        ].filter(Boolean).join(" / ");
+
+        statusButton.type = "button";
+        statusButton.textContent = todo.status === "COMPLETED" ? "未完了に戻す" : "完了にする";
+        statusButton.addEventListener("click", () => changeStatus(todo));
+
+        deleteButton.type = "button";
+        deleteButton.textContent = "削除";
+        deleteButton.addEventListener("click", () => deleteTodo(todo));
+
+        item.append(title, details, statusButton, " ", deleteButton);
+        return item;
+    }
+
+    async function changeStatus(todo) {
+        const newStatus = todo.status === "COMPLETED" ? "OPEN" : "COMPLETED";
+
+        try {
+            await request(`${apiUrl}/${todo.id}/status`, {
+                method: "PATCH",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({status: newStatus})
+            });
+            await loadTodos();
+        } catch (error) {
+            message.textContent = error.message;
+        }
+    }
+
+    async function deleteTodo(todo) {
+        if (!window.confirm(`「${todo.title}」を削除しますか？`)) {
+            return;
+        }
+
+        try {
+            await request(`${apiUrl}/${todo.id}`, {method: "DELETE"});
+            await loadTodos();
+        } catch (error) {
+            message.textContent = error.message;
+        }
+    }
+
+    createForm.addEventListener("submit", async event => {
+        event.preventDefault();
+        const formData = new FormData(createForm);
+
+        try {
+            await request(apiUrl, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    title: formData.get("title"),
+                    description: formData.get("description") || null,
+                    dueDate: formData.get("dueDate") || null
+                })
+            });
+            createForm.reset();
+            await loadTodos();
+        } catch (error) {
+            message.textContent = error.message;
+        }
+    });
+
+    statusFilter.addEventListener("change", loadTodos);
+    reloadButton.addEventListener("click", loadTodos);
+    loadTodos();
+</script>
+</body>
+</html>

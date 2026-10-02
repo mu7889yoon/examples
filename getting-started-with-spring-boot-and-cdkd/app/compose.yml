@@ -1,0 +1,35 @@
+services:
+  backend:
+    image: maven:3.9-eclipse-temurin-26
+    working_dir: /workspace
+    command: ./mvnw spring-boot:run
+    volumes:
+      - ./backend:/workspace
+      - maven-cache:/root/.m2
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/todo
+      SPRING_DATASOURCE_USERNAME: todo
+      SPRING_DATASOURCE_PASSWORD: todo
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: todo
+      POSTGRES_USER: todo
+      POSTGRES_PASSWORD: todo
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo -d todo"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  maven-cache:
+  postgres-data:
