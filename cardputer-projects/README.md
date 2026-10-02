@@ -6,6 +6,7 @@ M5Stack Cardputer を使った実験・サンプル用のプロジェクトで�
 
 ## まず読む資料
 
+- [Cardputer-Adv のアイデア](IDEA.md) — 次に作りたい機能のメモ
 - [Cardputer 開発ノート](docs/cardputer.md) — 仕様、ピンマップ、開発環境、書き込み手順、公式資料
 - [Cardputer CLI スキル](skills/cardputer-cli-debug/SKILL.md) — CLI 書き込み、シリアル監視、デバッグ手順
 - [AGENTS.md](AGENTS.md) — このリポジトリで作業する際のルール
