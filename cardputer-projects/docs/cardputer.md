@@ -125,7 +125,7 @@ lib_deps =
 - [`M5Cardputer-UserDemo`](https://github.com/m5stack/M5Cardputer-UserDemo)
 - `CardputerADV` を使う場合は、同リポジトリの `CardputerADV` ブランチを使用する
 
-CLI での書き込み・シリアル監視・トラブルシュートは、再利用可能な `~/.codex/skills/cardputer-cli-debug/SKILL.md` にまとめています。
+CLI での書き込み・シリアル監視・トラブルシュートは、再利用可能な [Cardputer CLI スキル](../skills/cardputer-cli-debug/SKILL.md) にまとめています。
 
 ### UiFlow2
 
@@ -162,7 +162,7 @@ esptool --chip esp32s3 --port "$PORT" flash-id
 esptool image-info firmware.bin
 ```
 
-既成 `.bin` を `esptool` で直接書く場合は、bootloader / partition table / app の種類とフラッシュオフセットを配布元またはビルドシステムで確認してから実行します。オフセットを推測したり、初手で `erase-flash` を実行したりしないでください。詳細な切り分けは `~/.codex/skills/cardputer-cli-debug/` のスキルを参照してください。
+既成 `.bin` を `esptool` で直接書く場合は、bootloader / partition table / app の種類とフラッシュオフセットを配布元またはビルドシステムで確認してから実行します。オフセットを推測したり、初手で `erase-flash` を実行したりしないでください。詳細な切り分けは [Cardputer CLI スキル](../skills/cardputer-cli-debug/SKILL.md) を参照してください。
 
 ## 7. 最小サンプルの考え方
 

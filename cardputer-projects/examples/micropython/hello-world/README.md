@@ -6,15 +6,16 @@ UIFlow2 MicroPython が動作している Cardputer に `helloworld` を表示�
 
 Cardputer を USB-C で接続し、ポートを確認してから実行します。
 
+このリポジトリの `cardputer-projects/` で、次を実行します。
+
 ```sh
 PORT=/dev/tty.usbmodem101
-python3 ../cardputer-cli-debug/scripts/push_micropython.py \
+python3 skills/cardputer-cli-debug/scripts/push_micropython.py \
   --port "$PORT" \
-  --source helloworld.py
+  --source examples/micropython/hello-world/helloworld.py
 ```
 
-スクリプトは `/flash/helloworld.py` に保存した後、REPL 経由で一度実行します。終了後も画面には表示が残ります。
-再起動後も手動で実行できるよう、スクリプトは `/flash/helloworld.py` に保存します。
+スクリプトは `/flash/helloworld.py` に保存した後、REPL 経由で一度実行します。終了後も画面には表示が残り、再起動後は手動で再実行できます。
 
 シリアル REPL を確認する場合は次のコマンドを使います。
 

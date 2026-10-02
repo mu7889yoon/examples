@@ -38,20 +38,21 @@ pio device list
 
 ## UIFlow2 MicroPython 直接プッシュ
 
-UIFlow2 MicroPython が既に動作している Cardputer-Adv などでは、ファームウェアを消去・再書き込みせず、`mpremote` でアプリを `/flash/` に転送できる。これは画面表示や小さなアプリの反復開発に向く。
+UIFlow2 MicroPython が既に動作している Cardputer-Adv などでは、ファームウェアを消去・再書き込みせず、`mpremote` でアプリを `/flash/` に転送できる。これは画面表示や小さなアプリの反復開発に向く。以下のコマンドは、このリポジトリの `cardputer-projects/` で実行する。
 
 ```sh
 python3 -m pip install --user mpremote pyserial
 PORT=/dev/tty.usbmodem101
+SOURCE=examples/micropython/hello-world/helloworld.py
 
 # 接続とファイルシステムを確認
 mpremote connect "$PORT" fs ls
 
 # ファイルを保存（既存の main.py や boot.py は上書きしない）
-mpremote connect "$PORT" fs cp helloworld.py :/flash/helloworld.py
+mpremote connect "$PORT" fs cp "$SOURCE" :/flash/helloworld.py
 
 # ホストから一度だけ実行
-mpremote connect "$PORT" run helloworld.py
+mpremote connect "$PORT" run "$SOURCE"
 
 # REPL で確認・デバッグ
 mpremote connect "$PORT" repl
@@ -68,9 +69,9 @@ Cardputer-Adv の UIFlow2 では、`mpremote` が `could not enter raw repl` に
 ```sh
 PORT=/dev/tty.usbmodem101
 python3 -m pip install --user pyserial
-python3 cardputer-cli-debug/scripts/push_micropython.py \
+python3 skills/cardputer-cli-debug/scripts/push_micropython.py \
   --port "$PORT" \
-  --source type-hello-world/helloworld.py
+  --source examples/micropython/hello-world/helloworld.py
 ```
 
 スクリプトはデフォルトで `/flash/helloworld.py` だけを書き込み、`boot.py` / `main.py` の上書きを拒否する。`--no-run` を付けると保存だけにできる。
