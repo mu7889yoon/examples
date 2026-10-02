@@ -15,6 +15,7 @@ M5Stack Cardputer を使った実験・サンプル用のプロジェクトで�
 
 - [`docs/`](docs/cardputer.md) — ハードウェア仕様と開発ノート
 - [`examples/micropython/hello-world/`](examples/micropython/hello-world/README.md) — UIFlow2 MicroPython の画面表示サンプル
+- [`examples/micropython/ble-macro-pad/`](examples/micropython/ble-macro-pad/README.md) — 実機から回収した BLE 左手デバイス
 - [`skills/cardputer-cli-debug/`](skills/cardputer-cli-debug/SKILL.md) — CLI 操作とデバッグの手順・補助スクリプト
 
 ## Arduino で最初のプログラムを書き込む
@@ -51,7 +52,7 @@ lib_deps =
 
 ## リポジトリの状態
 
-Arduino の実験コードはまだありません。UIFlow2 MicroPython の最小サンプルは [`examples/micropython/hello-world/`](examples/micropython/hello-world/README.md) にあります。実機での書き込み・動作確認結果は、確認した機種とファームウェアの組み合わせを添えて追記してください。
+Arduino の実験コードはまだありません。UIFlow2 MicroPython の表示サンプルと、実機から回収した [BLE 左手デバイス](examples/micropython/ble-macro-pad/README.md) があります。実機での書き込み・動作確認結果は、確認した機種とファームウェアの組み合わせを添えて追記してください。
 
 ## ライセンス
 
