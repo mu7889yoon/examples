@@ -1,0 +1,473 @@
+{
+  "info": {
+    "_postman_id": "aa34fa24-c004-4a21-9be2-4efead7137bb",
+    "name": "Todo API - Spring Boot",
+    "description": "Spring Bootで作成したTodo APIを試すCollectionです。\n\n`02 CRUDシナリオ`を上から実行すると、Todoの登録時にレスポンスのUUIDをCollection変数`todoId`へ保存し、後続の取得・更新・状態変更・削除で再利用します。Collection Runnerを使うと一連の操作とテストをまとめて実行できます。",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Health Check",
+      "item": [
+        {
+          "name": "Spring Boot Is Running",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/actuator/health",
+            "description": "Spring BootのActuatorへアクセスし、アプリケーションが起動していることを確認します。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OKが返る\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"statusがUPになっている\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql(\"UP\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 CRUD Scenario",
+      "description": "上から順番に実行します。最初のリクエストが保存した`todoId`を後続のリクエストで使用します。",
+      "item": [
+        {
+          "name": "01 Create a Todo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postmanを触ってみる\",\n  \"description\": \"CollectionからTodo APIをテストする\",\n  \"dueDate\": \"2026-08-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/todos",
+            "description": "Todoを1件登録します。返された`id`をCollection変数`todoId`へ保存します。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Createdが返る\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"登録したTodoが返る\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.id).to.be.a(\"string\").and.not.empty;",
+                  "    pm.expect(body.title).to.eql(\"Postmanを触ってみる\");",
+                  "    pm.expect(body.status).to.eql(\"OPEN\");",
+                  "    pm.expect(body.completedAt).to.eql(null);",
+                  "});",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"todoId\", body.id);",
+                  "",
+                  "pm.test(\"Locationヘッダーに作成したTodoのURLが入る\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Location\")).to.eql(`/api/todos/${body.id}`);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 List Todos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/todos",
+            "description": "Todoの一覧を取得し、直前に登録したTodoが含まれることを確認します。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OKが返る\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"レスポンスが配列になっている\", function () {",
+                  "    pm.expect(pm.response.json()).to.be.an(\"array\");",
+                  "});",
+                  "",
+                  "pm.test(\"登録したTodoが一覧に含まれる\", function () {",
+                  "    const todos = pm.response.json();",
+                  "    const todoId = pm.collectionVariables.get(\"todoId\");",
+                  "    pm.expect(todos.some(todo => todo.id === todoId)).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 Get a Todo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/todos/{{todoId}}",
+            "description": "Collection変数`todoId`に対応するTodoを取得します。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OKが返る\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"指定したTodoが返る\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.id).to.eql(pm.collectionVariables.get(\"todoId\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 Update the Todo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Collectionを理解する\",\n  \"description\": \"更新APIをPostmanから呼び出した\",\n  \"dueDate\": \"2026-09-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/todos/{{todoId}}",
+            "description": "登録したTodoのタイトル、説明、期限を更新します。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OKが返る\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Todoが更新されている\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.id).to.eql(pm.collectionVariables.get(\"todoId\"));",
+                  "    pm.expect(body.title).to.eql(\"Postman Collectionを理解する\");",
+                  "    pm.expect(body.description).to.eql(\"更新APIをPostmanから呼び出した\");",
+                  "    pm.expect(body.dueDate).to.eql(\"2026-09-01\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 Complete the Todo",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/todos/{{todoId}}/status",
+            "description": "登録したTodoを完了状態へ変更します。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OKが返る\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Todoが完了している\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql(\"COMPLETED\");",
+                  "    pm.expect(body.completedAt).to.be.a(\"string\").and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 Filter Completed Todos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/todos?status=COMPLETED",
+            "description": "状態が`COMPLETED`のTodoだけを取得します。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OKが返る\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"完了したTodoだけが返る\", function () {",
+                  "    const todos = pm.response.json();",
+                  "    pm.expect(todos).to.be.an(\"array\");",
+                  "    pm.expect(todos.every(todo => todo.status === \"COMPLETED\")).to.eql(true);",
+                  "    pm.expect(todos.some(todo => todo.id === pm.collectionVariables.get(\"todoId\"))).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 Delete the Todo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/todos/{{todoId}}",
+            "description": "登録したTodoを削除します。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"204 No Contentが返る\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test(\"レスポンスボディが空になっている\", function () {",
+                  "    pm.expect(pm.response.text()).to.eql(\"\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 Confirm Deletion",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/todos/{{todoId}}",
+            "description": "削除したTodoを取得し、404になることを確認します。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 Not Foundが返る\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Problem Detailが返る\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql(404);",
+                  "    pm.expect(body.title).to.eql(\"Todo not found\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 Validation and Errors",
+      "item": [
+        {
+          "name": "Title Is Required",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"description\": \"タイトルがないので失敗する\",\n  \"dueDate\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/todos",
+            "description": "必須のタイトルを空にし、Validationの400レスポンスを確認します。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Requestが返る\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"titleのValidationエラーが返る\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.title).to.eql(\"Request validation failed\");",
+                  "    pm.expect(body.fieldErrors.title).to.eql(\"title is required\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown Todo Returns 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/todos/{{missingTodoId}}",
+            "description": "存在しないUUIDを指定し、404レスポンスを確認します。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 Not Foundが返る\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Todo not foundが返る\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql(404);",
+                  "    pm.expect(body.title).to.eql(\"Todo not found\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid Status Returns 400",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DONE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/todos/{{missingTodoId}}/status",
+            "description": "`OPEN`と`COMPLETED`以外の状態を送り、JSONの変換エラーが400になることを確認します。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Requestが返る\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Malformed requestが返る\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql(400);",
+                  "    pm.expect(body.title).to.eql(\"Malformed request\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "todoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "missingTodoId",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "type": "string"
+    }
+  ]
+}
