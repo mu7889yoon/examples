@@ -1,0 +1,9 @@
+{
+  "state": "Help! My payouts have been failing for three days.",
+  "questions": {
+    "is_urgent": {
+      "type": "noul",
+      "instructions": "Does this message convey urgency?"
+    }
+  }
+}

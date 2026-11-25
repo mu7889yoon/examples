@@ -1,0 +1,6 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+image.auto.tfvars
+response.json
+measurements.jsonl
