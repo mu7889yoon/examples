@@ -1,0 +1,48 @@
+version: 0.2
+
+env:
+  shell: bash
+  variables:
+    DECIDER_SOURCE_REVISION: "6d85079caf1f1906ebb0f1370b56ef28ba7aa93e"
+    MODEL_ID: "StrandsAgents/strands-decider-2B-qwen3.5-v1-2610"
+    MODEL_REVISION: "4d27d8d7edcfd6616806c8684e20e2673684e283"
+
+phases:
+  build:
+    commands:
+      - |
+        set -euo pipefail
+        git init -q decider
+        git -C decider fetch --depth 1 https://github.com/strands-labs/strands-decider.git "$DECIDER_SOURCE_REVISION"
+        git -C decider checkout --detach FETCH_HEAD
+        test "$(git -C decider rev-parse HEAD)" = "$DECIDER_SOURCE_REVISION"
+
+        image_tag="${CODEBUILD_BUILD_ID##*:}"
+        image="${ECR_REPOSITORY_URI}:${image_tag}"
+        docker buildx build --platform linux/arm64 --provenance=false --sbom=false --load \
+          --build-arg MODEL="$MODEL_ID" --build-arg MODEL_REVISION="$MODEL_REVISION" \
+          --build-arg VISION=false --build-arg DECODER_PRECISION=q8_0 \
+          --tag "$image" --file decider/deploy/lambda/Dockerfile decider
+
+        docker run --rm -i --network none --read-only --tmpfs /tmp \
+          --memory 10g --memory-swap 10g --cpus 6 --user 1000:1000 \
+          --env DECIDER_MAX_REQUEST_TOKENS=24576 --workdir /var/task \
+          --entrypoint python3.12 "$image" - <<'PY'
+        import json
+
+        from handler import handler
+
+        result = handler({
+            "state": "Help! My payouts have been failing for three days.",
+            "questions": {
+                "is_urgent": {"type": "noul", "instructions": "Does this message convey urgency?"}
+            },
+        }, None)
+        assert result["model"] == "strands-decider-2B-qwen3.5-v1-2610-q8_0", result
+        assert 0 <= result["answers"]["is_urgent"]["noul"] <= 1, result
+        print(json.dumps(result))
+        PY
+
+        aws ecr get-login-password --region "$AWS_DEFAULT_REGION" |
+          docker login --username AWS --password-stdin "${ECR_REPOSITORY_URI%%/*}"
+        docker push "$image"
